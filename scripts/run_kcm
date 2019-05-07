@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Dengfeng Guan 
+# k-mer comparison wrapper
+# 19.04.29
+kcm() {
+	kmc_dir=/nfs/users/nfs_d/dg30/luster_dg30/dg30/projects/vgp/purge_dups/bTaeGut1/KMC
+	mem=$1
+	mem=$(( mem / 1000 ))
+	cpu=$2
+	kmer=$3
+	reads=$4
+	ref=$5
+	outprefix=$6
+	tmp=$7
+	mkdir -p $tmp
+	$kmc_dir/bin/kmc -ci0 -cs5000 -t$cpu -m$mem -k$kmer @$reads "$outprefix"_reads $tmp	
+	if [ $? -ne 0 ]
+	then
+		echo "Fail to generate k-mers for reads"
+		exit 1
+	fi
+	$kmc_dir/bin/kmc -ci0 -t$cpu -fm -m$mem -k$kmer $ref "$outprefix"_ref $tmp 
+	if [ $? -ne 0 ]
+	then
+		echo "Fail to generate k-mers for reference"
+		exit 1
+	fi
+		
+	$kmc_dir/bin/kmc_tools analyze "$outprefix"_reads "$outprefix"_ref "$outprefix".matrix
+	if [ $? -ne 0 ]
+	then
+		echo "Fail to compare k-mers on reads and reference"
+		exit 1
+	fi
+	python3 $kmc_dir/spectra.py $outprefix.matrix $outprefix.spectra.png
+	if [ $? -ne 0 ]
+	then
+		echo "Fail to generate k-mer spectra"
+		exit 1
+	fi
+	rm -f ref.fofn
+	exit 0	
+}
+
+
+
+if [ $# -lt 8 ]
+then
+	echo "run_kcm <SPID> <MEM> <CPUs>  <KMER> <READS> <REFERENCE> <OUTPUT_PREFIX> <TMPDIR>"
+	echo "example: "
+	echo "        run_kcm  arab 100000 12  21 10x.fofn ref.fa  example /tmp"
+	exit 1
+fi
+
+export -f kcm
+spid=$1
+shift
+mem=$1
+cpu=$2
+#if [ $platform = "y" ]
+#then	
+bsub -M$mem -n $cpu -R"select[mem>$mem] rusage[mem=$mem] span[hosts=1]" -J run_kcm_$spid -oo run_kcm_"$spid".o -eo run_kcm_"$spid".e  kcm "$@"  
+#else
+	#kcm "$@"
+#fi

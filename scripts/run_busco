@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+busco() {
+	fasta=$1
+	cpus=$2
+	output_prefix=$3
+	lineage=$4
+	tmpdir=$5
+
+	export PATH=/software/ensembl/compara/ncbi-blast-2.2.30+/bin:${PATH}
+	export PATH=/software/vertres/bin-external/augustus-3.3/bin:${PATH}
+	export PATH=/software/vertres/bin-external/augustus-3.3/scripts:${PATH}
+	export PYTHONPATH=/nfs/users/nfs_d/dg30/luster_dg30/dg30/projects/vgp/tools/busco-master/src/:${PYTHONPATH}
+	export PATH=/nfs/users/nfs_d/dg30/luster_dg30/dg30/projects/vgp/tools/busco-master/scripts:${PATH}
+	export AUGUSTUS_CONFIG_PATH=/nfs/users/nfs_d/dg30/luster_dg30/pub/august_config/augustus-3.3/config
+	export BUSCO_CONFIG_FILE=/software/vertres/bin-external/busco-3.02/config/config.ini
+	run_BUSCO.py -f --in $fasta --cpu $cpus --out $output_prefix --mode genome --lineage_path /lustre/scratch116/vr/ref/busco/v2/datasets/"$lineage"_odb9/ --tmp_path $tmpdir --tarzip
+}
+
+export -f busco
+
+
+if [ $# -lt 6 ]
+then
+	echo "run_busco  <SPID> <MEM> <FASTA> <CPUs> <OUT_PREFIX> <LINEAGE> <TMPDIR>"
+	exit 1
+fi
+
+spid=$1
+shift
+mem=$1
+shift
+cpus=$2
+
+bsub -qlong -M${mem} -R"select[mem>$mem] rusage[mem=$mem] span[hosts=1]" -n"$cpus" -Jbusco_"$spid" -o busco_"$spid".o -e busco_"$spid".e busco "$@"  
