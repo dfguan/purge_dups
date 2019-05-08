@@ -20,11 +20,13 @@ purge haplotigs and overlaps in an assembly based on read depth
 
 ## Overview
 
-purge\_dups pipeline calculates read depth of given read files, even though the pipeline still works without sequencing data, it is high recommended to provide it. Based on the read depth, purge\_dups pipeline will resolve the coverage cutoffs for haploid and diploid sequence. Meanwhile, the pipeline also splits the draft assembly into numbers of sequences, does a self-to-self alignment, chains the segmented consistent alignments. 
+purge\_dups is designed to remove haplotigs and contig overlaps in a *de novo* assembly based on read depth. 
+
+You can follow the [Usage](#usg) part and use our pipeline to purge your assembly or go to the [Pipeline Guide](#pplg) to build your own pipeline.
 
 ![purge_dups pipeline](https://github.com/dfguan/purge_dups/blob/master/purge_dupspipeline.png)
 
-You can follow the [Usage](#usg) part and use our pipeline to purge your assembly or go to the [Pipeline Guide](#pplg) to build your own pipeline.
+
 
 ## Dependencies
 
