@@ -19,7 +19,7 @@ ngscstat: asset.o ngscstat.o bamlite.o sdict.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 split_fa: split_fa.o  
 	$(CC) $(CFLAGS) $^ -o $@  $(LDFLAGS) 
-get_seqs: get_seqs.o sdict.o
+get_seqs: get_seqs.o sdict.o build_graph.o cdict.o bed.o graph.o
 	$(CC) $(CFLAGS) $^ -o $@  $(LDFLAGS) 
 
 .c .o:

@@ -80,7 +80,7 @@ void *read_covs(char *fn, void *sn)
 	while (ks_getuntil(ks, KS_SEP_LINE, &buf, &dret) >= 0) {
 		if (buf.s[0] == '>')	{
 			if (!parse_hdr(buf.s + 1, buf.l -1, &hd)) {
-				int idx = sd_put(osn, hd.seqn, hd.len, 1);	
+				int idx = sd_put(osn, hd.seqn, 0, hd.len, 1);	
 				if (idx >= ca_m) {
 					ca_m = idx << 1;
 					cov_ary_t *new_ca = calloc(ca_m, sizeof(cov_ary_t));

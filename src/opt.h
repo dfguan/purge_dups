@@ -36,6 +36,7 @@ typedef struct {
 	int min_bmf, min_mmf;
 	char *cov_fn;
 	char *cut_fn;
+	char *outdir;
 }opt;
 int parse_args(int argc, char *argv[], opt *o);
 #endif

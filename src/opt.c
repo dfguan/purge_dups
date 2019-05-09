@@ -23,10 +23,11 @@
 
 int help()
 {
-	fprintf(stderr, "\nUsage: update [options] <PAF>\n");
+	fprintf(stderr, "\nUsage: purge_dups [options] <PAF>\n");
 	fprintf(stderr, "Options:\n");	
 	/*fprintf(stderr, "         -r    FLOAT    minimum overlap ratio for an alignment [0.8]\n");	*/
 	
+	fprintf(stderr, "         -O             output directory [working directory]\n");
 	fprintf(stderr, "         -a    INT      minimum best match fraction [50]\n");
 	fprintf(stderr, "         -b    INT      minimum max match fraction [200]\n");
 	fprintf(stderr, "         -m    INT      minimum matching bases [500]\n");
@@ -58,11 +59,15 @@ int parse_args(int argc, char *argv[], opt *o)
 	o->min_frac = .80;
 	o->min_bmf = 70;
 	o->min_mmf = 200;
+	o->outdir = 0;
 	int c;
-	while ((c = getopt(argc, argv, "a:b:c:T:G:M:l:E:m:f:r2h")) != -1) {
+	while ((c = getopt(argc, argv, "O:a:b:c:T:G:M:l:E:m:f:r2h")) != -1) {
 		switch (c) {
 			case 'a':
 				o->min_bmf = atoi(optarg);
+				break;
+			case 'O':
+				o->outdir = optarg;
 				break;
 			case 'b':
 				o->min_mmf = atoi(optarg);

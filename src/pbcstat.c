@@ -36,7 +36,7 @@ int col_pos(char *paf_fn, int min_mq, float min_mlr, int onlyp, sdict_t *ctgs, u
 		if ((onlyp && r.isprim) || !onlyp) {
 			if (r.mq > min_mq || r.qe - r.qs > (uint32_t)(min_mlr * r.ql)) {
 				/*fprintf(stderr, "into %d\n", 2);	*/
-				int ind = sd_put(ctgs, r.tn, r.tl, 1);	
+				int ind = sd_put(ctgs, r.tn, 0, r.tl, 1);	
 				/*fprintf(stderr, "insert %d\n", ind);	*/
 				ctg_pos_push(d,ind);	
 				/*if (r.rev) {*/

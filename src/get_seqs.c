@@ -15,28 +15,44 @@
  *
  * =====================================================================================
  */
+/* 
+ *  ----read_seq --- ctgs -> build_graph -> output path
+ *                     |                     ^
+ *                     V                     |
+ *  -------------------reinitiate the ctgs--- output purged_assembly
+ *
+ */
+
+
+
 #include <stdio.h>
 #include <zlib.h>
 
 #include "sdict.h"
 #include "kseq.h"
 #include "kvec.h"
+#include "build_graph.h"
+#include "graph.h"
 
 KSEQ_INIT(gzFile, gzread, gzseek)
 
 typedef struct {
 	uint32_t sn; //don't think there will be 2G contigs
 	uint32_t s, e;
+	uint32_t tp;
 }dup_t;
 
 typedef struct {
 	char *name;
 	uint32_t s,e;
+	uint32_t tp;
 }dup_s;
 
 
 typedef struct {size_t n, m; dup_t *a;} dup_v;
 
+enum dup_type {JUNK, HAPLOTIG, PRIMARY, REPEAT, OVLP, UNKNOWN};
+char *dup_type_s[] = {"JUNK", "HAPLOTIG", "PRIMARY", "REPEAT", "OVLP", "UNKNOWN"};
 int print_dups(dup_t *dups, size_t n, sdict_t *dup_n)
 {
 	dup_t *dp = dups;
@@ -53,6 +69,17 @@ int print_dups2(dup_t *dups, size_t n, char *name)
 		fprintf(stdout, "%s\t%u\t%u\n", name, dp[i].s, dp[i].e);
 	return 0;
 }
+
+uint32_t get_tp(char *s)
+{
+	int i;
+	for ( i = JUNK; i < UNKNOWN; ++i) {
+		if (!(strcmp(s, dup_type_s[i])))
+			return i; 
+	}
+	return i;
+}
+
 int parse_dup(char *s, int l, dup_s *k)
 {
 	char *q, *r;
@@ -63,6 +90,7 @@ int parse_dup(char *s, int l, dup_s *k)
 		if (t == 0) k->name= q;
 		else if (t == 1) k->s = strtol(q, &r, 10);
 		else if (t == 2) k->e = strtol(q, &r, 10);
+		else if (t == 3) k->tp = get_tp(q);
 		++t, q = i < l? &s[i+1] : 0;
 	}
 	if (t < 2) return -1;
@@ -102,90 +130,168 @@ int col_dups(char *fn, sdict_t *sn, dup_v *dups)
 		if (!name || strcmp(name, d.name)) {
 			if (name) { 
 				free(name); 
-				dup_t t = (dup_t){rid, 0, 0};
+				dup_t t = (dup_t){rid, 0, 0, UNKNOWN};
 				kv_push(dup_t, *dups, t);	
 			}
 			name = strdup(d.name);	
-			rid = sd_put(sn, name, 0, 1);	
-			dup_t t = (dup_t){rid, 0, 0};
+			rid = sd_get(sn, name);	
+			dup_t t = (dup_t){rid, 0, 0, UNKNOWN};
 			kv_push(dup_t, *dups, t);	
 		}
-		dup_t k = (dup_t) {rid, d.s, d.e};
+		dup_t k = (dup_t) {rid, d.s, d.e, d.tp};
 		kv_push(dup_t, *dups, k);	
 	}
-	dup_t k = (dup_t) {rid, 0, 0};
+	dup_t k = (dup_t) {rid, 0, 0, UNKNOWN};
 	kv_push(dup_t, *dups, k);	
 	return 0;
 }
 
-int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml)
+int get_seqs_core(sdict_t *sn, char *name, char *s, uint32_t l, dup_t  *dups, uint64_t *idx, uint32_t ml)
 {
-	size_t i;
-	if (n <= 2) {
-		fprintf(stdout, ">%s\n%s\n", name, s);	
-		return 0;			
-	}
-	dp[n-1].s = dp[n-1].e = l + 1;
-	/*print_dups2(dp, n, name);*/
-	/*char *seq = malloc(sizeof(char) * (l + 1 + (n-2) * 200));*/
-	char *seq = malloc(sizeof(char) * (l + 1));
-	char *hapseq = malloc(sizeof(char) * (l + 1));
-	uint32_t poi = 0;
-	for ( i = 0; i < n - 1; ++i) {
-		uint32_t st, ed;
-		st = dp[i].e;
-		ed = dp[i+1].s;
-		memcpy(seq + poi, s + st, ed - st - 1);		
-		poi += (ed - st - 1);
-		/*if (i != n - 2)	{*/
-			/*memset(seq + poi, 'N', 200); 	*/
-			/*poi += 200;*/
-		/*}*/
-		seq[poi] = 0;
-	}
-	uint32_t happoi = 0;
-	for (i = 1; i < n - 1; ++i) {
-		uint32_t st, ed;
-		st = dp[i].s;
-		ed = dp[i].e;
-		memcpy(hapseq + happoi, s + st - 1, ed - st + 1);	
-		happoi += (ed - st + 1);
-		hapseq[happoi] = 0;
-	}	
-	if (poi > ml) {
-		fprintf(stdout, ">%s\n%s\n", name, seq);
-		fprintf(stderr, ">%s\n%s\n", name, hapseq);
-	} else 
-		fprintf(stderr, ">%s\n%s\n", name, s);
-	free(seq);
-	free(hapseq);
+	uint32_t sid;
+	if (~(sid = sd_get(sn, name))) {
+		dup_t *dp = &dups[(idx[sid]>>32)];
+		size_t n = (uint32_t)idx[sid];	
+		if (n <= 2) {
+			return 0;			
+		}
+		dp[n-1].s = dp[n-1].e = l + 1;
+		/*print_dups2(dp, n, name);*/
+		/*char *seq = malloc(sizeof(char) * (l + 1 + (n-2) * 200));*/
+		char *seq = malloc(sizeof(char) * (l + 1));
+		char *hapseq = malloc(sizeof(char) * (l + 1));
+		uint32_t poi = 0;
+		size_t i;
+		for ( i = 0; i < n - 1; ++i) {
+			uint32_t st, ed;
+			st = dp[i].e;
+			ed = dp[i+1].s;
+			memcpy(seq + poi, s + st, ed - st - 1);		
+			poi += (ed - st - 1);
+			seq[poi] = 0;
+		}
+		uint32_t happoi = 0;
+		for (i = 1; i < n - 1; ++i) {
+			uint32_t st, ed;
+			st = dp[i].s;
+			ed = dp[i].e;
+			memcpy(hapseq + happoi, s + st - 1, ed - st + 1);	
+			happoi += (ed - st + 1);
+			hapseq[happoi] = 0;
+		}	
+		if (poi > ml) {
+			fprintf(stdout, ">%s\n%s\n", name, seq);
+			
+			fprintf(stderr, ">%s\n%s\n", name, hapseq);
+		} else 
+			fprintf(stderr, ">%s\n%s\n", name, s);
+		free(hapseq);
+
+	} 	
 	return 0;
 }
 
-
-int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml)
+int read_seqs(char *fafn, sdict_t *sn)
 {
-	gzFile fp;
-	kseq_t *seq;
-	/*fp = gzdopen(fileno(stdin), "r");*/
-	fp = fafn && strcmp(fafn, "-")? gzopen(fafn, "r") : gzdopen(fileno(stdin), "r");
-	seq = kseq_init(fp);
-	uint32_t sid;
-	dup_t *dp = dups.a;
-	while (kseq_read(seq) >= 0) {
-		if (~(sid = sd_get(sn, seq->name.s))) {
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml);
-		} else 
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml);
-	} 
- 	//add some basic statistics maybe 		
+	gzFile fp = fafn && strcmp(fafn, "-") ? gzopen(fafn, "r") : gzdopen(fileno(stdin), "r");
+	if (fp == 0) return 1;
+	kseq_t *seq = kseq_init(fp);
+	while (kseq_read(seq) >= 0) 
+		sd_put(sn, seq->name.s, seq->seq.s, seq->seq.l, 1);
 	kseq_destroy(seq);
 	gzclose(fp);
 	return 0;
 }
+
+int init_seqs(graph_t *g, sdict_t *ctgs)
+{
+	uint32_t i;
+	uint32_t n = ctgs->n_seq;
+	for ( i = 0; i < n; ++i) 
+		update_seqs(g, ctgs->seq[i].name, ctgs->seq[i].seq, ctgs->seq[i].len);	
+	return 0;
+}
+
+int get_seqs(dup_v *dups, uint64_t *idx, sdict_t *sn, uint32_t ml, int ignovlps, char *prefix)
+{
+	uint32_t sid;
+	dup_t *dup = dups->a;
+	size_t i;
+	char *prim_fan = malloc(sizeof(char) * (strlen(prefix) + strlen("/purged.fa") + 1)); 
+	char *hap_fan = malloc(sizeof(char) * (strlen(prefix) + strlen("/hap.fa") + 1));
+	sprintf(prim_fan, "%s/purged.fa", prefix);
+	sprintf(hap_fan, "%s/hap.fa", prefix);	
+	FILE *fp_pri = fopen(prim_fan, "w");
+	FILE *fp_hap = fopen(hap_fan, "w");
+	for ( i = 0; i < sn->n_seq; ++i) {
+		dup_t *dp = &dup[(idx[i]>>32)];
+		size_t n = (uint32_t)idx[i];	
+		uint32_t l = sn->seq[i].len;
+		char *s = sn->seq[i].seq;
+		char *name = sn->seq[i].name;
+		if (n <= 2) continue;
+		dp[n-1].s = dp[n-1].e = l + 1;
+		/*print_dups2(dp, n, name);*/
+		/*char *seq = malloc(sizeof(char) * (l + 1 + (n-2) * 200));*/
+		char *seq = malloc(sizeof(char) * (l + 1));
+		char *hapseq = malloc(sizeof(char) * (l + 1));
+		uint32_t poi = 0;
+		size_t j;
+		for ( j = 0; j < n - 1; ++j) {
+			uint32_t st, ed;
+			st = dp[j].e;
+			ed = dp[j+1].s;
+			memcpy(seq + poi, s + st, ed - st - 1);		
+			poi += (ed - st - 1);
+			seq[poi] = 0;
+		}
+		int isovlp = 0;
+		for ( j = 0; j < n; ++j) {
+			if (dp[j].tp == OVLP) {
+				isovlp = 1; break;
+			}
+		}
+		uint32_t happoi = 0;
+		for (j = 1; j < n - 1; ++j) {
+			uint32_t st, ed;
+			st = dp[j].s;
+			ed = dp[j].e;
+			memcpy(hapseq + happoi, s + st - 1, ed - st + 1);	
+			happoi += (ed - st + 1);
+			hapseq[happoi] = 0;
+		}	
+		if (poi > ml) {
+			if (sn->seq[i].seq) 
+				free(sn->seq[i].seq);
+			sn->seq[i].seq = seq;
+			sn->seq[i].len = poi;
+			if (isovlp && !ignovlps)
+				fprintf(fp_hap, ">%s\n%s\n", name, hapseq);
+		} else {
+			fprintf(fp_hap, ">%s\n%s\n", name, s);
+			if (sn->seq[i].seq) 
+				free(sn->seq[i].seq);
+			sn->seq[i].len = 0;
+			sn->seq[i].seq = 0;
+		} 
+		free(hapseq);
+	}
+ 	//add some basic statistics maybe 		
+	for ( i = 0; i < sn->n_seq; ++i) 
+		if (sn->seq[i].len) fprintf(fp_pri, ">%s\n%s\n", sn->seq[i].name, sn->seq[i].seq); 
+	fclose(fp_pri);
+	fclose(fp_hap);
+	free(hap_fan);
+	free(prim_fan);
+	return 0;
+}
 typedef struct {
 	char *dup_fn;
+	char *jnt_fn;
 	char *fafn;
+	char *prefix;
+	int ignovlps;
+	int min_wt;
 	uint32_t ml;
 } opt_t;
 
@@ -196,12 +302,28 @@ int main(int argc, char *argv[])
 	int c;
 	char *r;
 	opts.ml = 10000;
+	opts.jnt_fn = opts.fafn = opts.dup_fn = 0;
+	opts.ignovlps = 0;
+	opts.prefix = ".";
+	opts.min_wt = 10000;
 	char *program;
    	(program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-	while (~(c=getopt(argc, argv, "l:h"))) {
+	while (~(c=getopt(argc, argv, "O:l:j:w:dh"))) {
 		switch (c) {
 			case 'l': 
 				opts.ml = strtol(optarg, &r, 10);
+				break;
+			case 'j': 
+				opts.jnt_fn = optarg;
+				break;
+			case 'w': 
+				opts.min_wt = atoi(optarg);
+				break;
+			case 'd': 
+				opts.ignovlps = 1;
+				break;
+			case 'O': 
+				opts.prefix = optarg;
 				break;
 			default:
 				if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
@@ -209,6 +331,10 @@ help:
 				fprintf(stderr, "\nUsage: %s  [<options>] <DUPs.BED> <FASTA> \n", program);
 				fprintf(stderr, "Options:\n");
 				fprintf(stderr, "         -l    INT      minimum sequence length [10000]\n");	
+				fprintf(stderr, "         -w    INT      minium weight for a joint [10000]\n");	
+				fprintf(stderr, "         -O    DIR      output directory [working directory]\n");	
+				fprintf(stderr, "         -j    FILE     linkage information\n");	
+				fprintf(stderr, "         -d             throw away the overlap sequences\n");	
 				fprintf(stderr, "         -h             help\n");
 				return 1;	
 		}		
@@ -220,12 +346,45 @@ help:
 	opts.dup_fn = argv[optind++];
 	opts.fafn = argv[optind];
 	sdict_t *sn = sd_init();
+	read_seqs(opts.fafn, sn);
+#ifdef DEBUG 
+	fprintf(stderr, "[M::%s] finish reading sequences\n", __func__);
+#endif
 	dup_v dups = {0, 0, 0};	
 	col_dups(opts.dup_fn, sn, &dups);	
+#ifdef DEBUG 
+	fprintf(stderr, "[M::%s] finish collecting duplicates\n", __func__);
+#endif
 	/*print_dups(&dups, sn);*/
-	uint64_t *idx = malloc(sizeof(uint64_t) * sn->n_seq);
+	uint64_t *idx = calloc(sn->n_seq, sizeof(uint64_t));
 	dup_idx(dups, idx);
-	get_seqs(opts.fafn, dups, idx, sn, opts.ml);
+#ifdef DEBUG 
+	fprintf(stderr, "[M::%s] finish indexing duplicates\n", __func__);
+#endif
+	graph_t *g = graph_init();
+	if (opts.jnt_fn) 
+		buildg(sn, g, opts.jnt_fn, opts.min_wt, opts.prefix);
+	
+#ifdef DEBUG 
+	fprintf(stderr, "[M::%s] finish building graph\n", __func__);
+#endif
+	get_seqs(&dups, idx, sn, opts.ml, opts.ignovlps, opts.prefix);
+#ifdef DEBUG 
+	fprintf(stderr, "[M::%s] finish getting sequences\n", __func__);
+#endif
+   	//init seq in graph;
+	if (g && g->vtx.n) {
+		init_seqs(g, sn);	
+		char *sat_fn = malloc(sizeof(char) * (strlen(opts.prefix) + strlen("/scaffolds.sat") + 1));
+		sprintf(sat_fn, "%s/scaffolds.sat", opts.prefix);
+		dump_sat(g, sat_fn);
+		free(sat_fn);
+		char *scaffs_fn = malloc(sizeof(char) * (strlen(opts.prefix) + strlen("/scaffolds.fa") + 1));
+		sprintf(scaffs_fn, "%s/scaffolds.fa", opts.prefix);
+		get_path(g, 1, scaffs_fn);
+		free(scaffs_fn);	
+		graph_destroy(g);
+	}
 	free(idx);
 	return 0;		
 }

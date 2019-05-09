@@ -54,6 +54,11 @@ typedef struct {
 	uint32_t s, e;
 }dup_t;
 
+typedef struct {
+	uint32_t ctg1:31,ori1:1, ctg2:31, ori2:1, wt; //don't think there will be a 2G contig	
+}jnt_t;
+
+typedef struct {size_t n, m; jnt_t *a;} jnt_v;
 typedef struct {size_t n, m; dup_t *a;} dup_v;
 typedef struct {size_t n, m; eg_hit_t *a;} eg_hit_v;
 typedef struct {size_t n, m; cov_ary_t *a;} cov_ary_v;
@@ -71,16 +76,38 @@ typedef struct {size_t n, m; eg_hit_t *rht; uint64_t *idx;} eg_hits_t;
 	/*size_t i = 0; eg_hit_t * rht = r; fprintf(stderr, "%s\t%u\t%u\t%u\t%llu\t%u\t%u\t%u\t%d\t%d\n", gf->seg[rht[i].qns >> 32].name, rht[i].ql, (uint32_t)rht[i].qns, rht[i].qe, rht[i].tns>>32 , rht[i].tl, (uint32_t) rht[i].tns , rht[i].te, rht[i].tail, rht[i].con);*/
 	/*return 0;*/
 /*}*/
-int print_dups(dup_v *dups, sdict_t *dup_n)
+int print_dups(dup_v *dups, sdict_t *dup_n, char *outdir)
 {
+	int loutdir = outdir ? strlen(outdir) : 1;
+	char *dups_fn = malloc(sizeof(char) * (loutdir + strlen("/dups.bed") + 1));
+	sprintf(dups_fn, "%s/dups.bed", outdir ? outdir : ".");
 	dup_t *dp = dups->a;
 	size_t n = dups->n;
 	size_t i;
+	
+	FILE * fp = fopen(dups_fn, "w");
 	for ( i = 0; i < n; ++i ) 
-		fprintf(stdout, "%s\t%u\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp]);
+		fprintf(fp, "%s\t%u\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp]);
+	fclose(fp);
+	free(dups_fn);
 	return 0;
 }
 
+int print_jnts(jnt_v *jnts, sdict_t *sn, char *outdir)
+{
+	int loutdir = outdir ? strlen(outdir) : 1;
+	char *jnts_fn = malloc(sizeof(char) * (loutdir + strlen("/jnts.bed") + 1));
+	sprintf(jnts_fn, "%s/jnts.bed", outdir ? outdir : ".");
+	jnt_t *jts = jnts->a;
+	size_t n = jnts->n;
+	size_t i;
+	FILE * fp = fopen(jnts_fn, "w");
+	for ( i = 0; i < n; ++i ) 
+		fprintf(fp, "%s\t%c\t%s\t%c\t%u\t1\t1\n", sn->seq[jts[i].ctg1].name, jts[i].ori1?'-':'+', sn->seq[jts[i].ctg2].name, jts[i].ori2?'-':'+', jts[i].wt);
+	fclose(fp);
+	free(jnts_fn);
+	return 0;
+}
 //print a single hit
 int print_hit(eg_hit_t *rht, sdict_t *tn)
 {
@@ -761,9 +788,9 @@ int hit_read(char *paf_fn, eg_hits_t *rhts, sdict_t *sn, uint32_t min_match, int
 		if ((r.ql < r.tl || (r.ql == r.tl && strcmp(r.qn, r.tn) > 0))) {
 			eg_hit_t *p;
 			kv_pushp(eg_hit_t, h, &p);
-			p->qns = (uint64_t)sd_put(sn, r.qn, r.ql, 1)<<32 | (r.qs + 1);// one base	
+			p->qns = (uint64_t)sd_put(sn, r.qn, 0, r.ql, 1)<<32 | (r.qs + 1);// one base	
 			p->ql = r.ql; p->qe = r.qe; //one base
-			p->tns = (uint64_t)sd_put(sn, r.tn, r.tl, 0) << 32 | (r.ts + 1); //one base
+			p->tns = (uint64_t)sd_put(sn, r.tn, 0, r.tl, 0) << 32 | (r.ts + 1); //one base
 			p->tl = r.tl; p->te = r.te; //one base
 			p->rev = r.rev; p->ml = r.ml; p->bl = r.bl; 	
 			p->con = 0; p->del = 0;	p->tcov = p->qcov = 0;
@@ -1158,7 +1185,7 @@ int flt_hits3(eg_hit_t *rht, size_t n, uint32_t *cutoffs, int usecuts, sdict_t *
 	return 0;
 }
 
-int purge_dups2(eg_hit_t *rht, size_t n,sdict_t *sn, dup_v *dups) //second round to purge continous query 
+int purge_dups2(eg_hit_t *rht, size_t n,sdict_t *sn, dup_v *dups, jnt_v *jnts) //second round to purge continous query 
 {
 	size_t i, j;
 	uint32_t max_idx = 0;
@@ -1191,6 +1218,23 @@ int purge_dups2(eg_hit_t *rht, size_t n,sdict_t *sn, dup_v *dups) //second round
 					dup_t k = (dup_t) {(uint32_t)(rht[i].tns >>32), OVLP, 0, (uint32_t)rht[i].tns, rht[i].te};	
 					kv_push(dup_t, *dups, k);
 				}
+				
+				if (rht[i].qtg == 2 && rht[i].ttg == 0 && !rht[i].rev) {
+					jnt_t b = (jnt_t) {(uint32_t)(rht[i].qns >> 32), 1, (uint32_t)(rht[i].tns >> 32), 0, rht[i].ml};	
+					kv_push(jnt_t, *jnts, b);
+				} else if (rht[i].qtg == 2 && rht[i].ttg == 2 && rht[i].rev) {
+					jnt_t b = (jnt_t) {(uint32_t)(rht[i].qns >> 32), 1, (uint32_t)(rht[i].tns >> 32), 1, rht[i].ml};	
+					kv_push(jnt_t, *jnts, b);
+						
+				
+				} else if (rht[i].qtg == 0 && rht[i].ttg == 0 && rht[i].rev) {
+					jnt_t b = (jnt_t) {(uint32_t)(rht[i].qns >> 32), 0, (uint32_t)(rht[i].tns >> 32), 0, rht[i].ml};	
+					kv_push(jnt_t, *jnts, b);
+				} else if (rht[i].qtg == 0 && rht[i].ttg == 2 && !rht[i].rev) {
+					jnt_t b = (jnt_t) {(uint32_t)(rht[i].qns >> 32), 0, (uint32_t)(rht[i].tns >> 32), 1, rht[i].ml};	
+					kv_push(jnt_t, *jnts, b);
+				}
+
 			}	
 		}
 	}
@@ -1266,7 +1310,7 @@ int update_dup_cords(dup_v *dups, sdict_t *sn, sdict_t *dup_n)
 	for ( i = 0; i < n; ++i) {
 		name = sn->seq[dp[i].sn].name;
 		parse_name(name, strlen(name), &nt);
-		uint32_t idx = sd_put(dup_n, nt.ctgn, 0, 1);
+		uint32_t idx = sd_put(dup_n, nt.ctgn, 0, 0, 1);
 		name[nt.nl] = ':';
 		dp[i].sn = idx;
 		dp[i].s = nt.s + dp[i].s - 1;
@@ -1427,19 +1471,24 @@ int main(int argc, char *argv[])
 	qsort(rhts->rht, rhts->n, sizeof(eg_hit_t), cmp_qtgse);	
 	print_hits(rhts->rht, 0, rhts->n, sn, "aft");
 	
+	jnt_v jnts = {0, 0, 0};
 	//this part create undirected graph
-	purge_dups2(rhts->rht, rhts->n, sn, &dups); //second round to purge continous query 
+	purge_dups2(rhts->rht, rhts->n, sn, &dups, &jnts); //second round to purge continous query 
 	//time to update dups 
 	sdict_t *dup_n = sd_init();
 	/*fprintf(stderr, "dups %d %p\n", __LINE__, dups.a);*/
 	update_dup_cords(&dups, sn, dup_n);	
 	qsort(dups.a, dups.n, sizeof(dup_t), cmp_dupt);	
 	merge_dups(&dups);
-	print_dups(&dups, dup_n);
-	sd_destroy(dup_n);
+	
+	print_dups(&dups, dup_n, opts.outdir);
+	print_jnts(&jnts, sn, opts.outdir);
+	
 	kv_destroy(dups);
+	kv_destroy(jnts);
 	if (rhts) eg_destroy(rhts);	
 	sd_destroy(sn);	
+	sd_destroy(dup_n);
 
 	/*fprintf(stderr,"[M::%s] parsing paf...\n", __func__);*/
 	return 0;	

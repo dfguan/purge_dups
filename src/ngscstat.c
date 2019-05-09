@@ -87,7 +87,7 @@ int chl_col_ctgs(char *bam_fn, sdict_t *ctgs)
 		uint32_t len = h->target_len[i];
 		uint32_t lenl, lenr;
 		lenl = lenr = len >> 1;
-		sd_put(ctgs, name, len, 0);
+		sd_put(ctgs, name, 0, len, 0);
 	}
 	bam_destroy1(b);
 	bam_header_destroy(h);

@@ -20,11 +20,13 @@ void sd_destroy(sdict_t *d)
 	if (d->h) kh_destroy(str, (shash_t*)d->h);
 	for (i = 0; i < d->n_seq; ++i)
 		free(d->seq[i].name);
+	for (i = 0; i < d->n_seq; ++i)
+		if (d->seq[i].seq) free(d->seq[i].seq);
 	free(d->seq);
 	free(d);
 }
 
-int32_t sd_put(sdict_t *d, const char *name, uint32_t len, uint32_t isq)
+int32_t sd_put(sdict_t *d, const char *name, char *seq, uint32_t len, uint32_t isq)
 {
 	if (!name) return -1;
 	shash_t *h = (shash_t*)d->h;
@@ -39,6 +41,8 @@ int32_t sd_put(sdict_t *d, const char *name, uint32_t len, uint32_t isq)
 		}
 		s = &d->seq[d->n_seq];
 		s->len = len, s->aux = 0, s->del = 0, s->del2=0, s->isq = !!isq, s->best_hit = -1, s->type = 7;
+		if (seq) s->seq = strdup(seq);
+		else s->seq = 0;
 		kh_key(h, k) = s->name = strdup(name);
 		kh_val(h, k) = d->n_seq++;
 	} // TODO: test if len is the same;
