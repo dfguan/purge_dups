@@ -17,5 +17,4 @@
  */
 #define MAJOR 0
 #define MINOR 0
-#define PATCH 3
-#define TAG "ph_trial"
+#define PATCH 4
