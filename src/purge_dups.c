@@ -21,6 +21,7 @@
 /*#include <omp.h>*/
 
 #include "kvec.h"
+#include "ksort.h"
 #include "paf.h"
 #include "cov.h"
 #include "sdict.h"
@@ -37,6 +38,7 @@
 
 
 
+
 typedef struct {
 	uint64_t qns, tns;
 	uint32_t qe, te;
@@ -47,7 +49,10 @@ typedef struct {
 	uint8_t  qtp:4, ttp:4; // 0:low,1:hap,2:dip,3:high //take 4 bytes due arrangements don't know how to solve, maybe not a problem.
 }eg_hit_t;
 
-enum dup_type {JUNK, HAPLOTIG, PRIMARY, REPEAT, OVLP, UNKNOWN};
+#define hit_key(a) ((a).qns)
+KRADIX_SORT_INIT(hit, eg_hit_t, hit_key, 8)
+
+	enum dup_type {JUNK, HAPLOTIG, PRIMARY, REPEAT, OVLP, UNKNOWN};
 char *dup_type_s[] = {"JUNK", "HAPLOTIG", "PRIMARY", "REPEAT", "OVLP", "UNKNOWN"};
 typedef struct {
 	uint32_t sn:28, tp:3, del:1; //don't think there will be 2G contigs
@@ -230,10 +235,20 @@ int cmp_qtgse (const void *r, const void *s)
 }
 /**
  * @func    cmp_q
- * @brief   compare query's 
+ * @brief   compare query's name
  *
  */
 
+int cmp_qn(const void *r, const void *s) 
+{
+	eg_hit_t *p = (eg_hit_t *)r;
+	eg_hit_t *q = (eg_hit_t *)s;
+	uint32_t pn = p->qns >> 32;
+   	uint32_t qn = q->qns >> 32;	
+	if (pn == qn) return 0;
+	else if (pn > qn) return 1;
+	else return -1;
+}
 
 int cmp_q (const void *r, const void *s) 
 {
@@ -435,7 +450,7 @@ int get_bm_mm_core2(eg_hit_t *rht, size_t s, size_t e, sdict_t *sn, int *bmf, in
 	}
 	*bmf = bml * 100 / ql;
 	*mmf = mml * 100 / ql;
-	/*fprintf(stderr, "%s\t%s\t%f\t%f\n", sn->seq[rht[s].qns >> 32].name, sn->seq[rht[s].tns >>32].name, (float) bml * 100/ql, (float) mml * 100/ql);*/
+	fprintf(stderr, "bmfore: %s\t%s\t%f\t%f\n", sn->seq[rht[s].qns >> 32].name, sn->seq[rht[s].tns >>32].name, (float) bml * 100/ql, (float) mml * 100/ql);
 	return 0;
 }
 
@@ -501,6 +516,7 @@ int flt_by_bm_mm(eg_hit_t *rht, uint64_t *idx, size_t n_idx, sdict_t *sn, dup_v 
 		int check = 0;
 		for (j = 0; j < n_idx; ++j) {
 			uint32_t seq_idx = srt_idx[j];
+			/*fprintf(stderr, "seq_idx: %d\n", seq_idx);*/
 			if (!sn->seq[seq_idx].del && sn->seq[seq_idx].aux != PRIMARY && !sn->seq[seq_idx].del2) {
 				uint32_t cur_tp = sn->seq[seq_idx].type;
 				uint32_t best_hit_tp = sn->seq[seq_idx].best_hit  == 0xFFFFFFFF ? 7 : sn->seq[sn->seq[seq_idx].best_hit].type;
@@ -518,12 +534,13 @@ int flt_by_bm_mm(eg_hit_t *rht, uint64_t *idx, size_t n_idx, sdict_t *sn, dup_v 
 		}
 		if (!check) break;
 	}
-
+	fprintf(stderr, "[M::%s] check overpuring\n", __func__);
 	//check overpurging 
 	for (j = 0; j < n_idx; ++j) {
 		uint32_t seq_idx = srt_idx[j];
 		if (!sn->seq[seq_idx].del && sn->seq[seq_idx].aux != PRIMARY) {
 			if (sn->seq[seq_idx].del2 && sn->seq[seq_idx].best_hit != 0xFFFFFFFF && sn->seq[sn->seq[seq_idx].best_hit].del2)  {
+
 				get_bm_mm_core(rht , idx[seq_idx] >> 32, (idx[seq_idx] >> 32) + (uint32_t)idx[seq_idx], sn, &sid, &bm, &mm); 
 				if (bm >= min_bm) {
 					if (mm >= min_mm) {
@@ -770,6 +787,7 @@ int hit_read(char *paf_fn, eg_hits_t *rhts, sdict_t *sn, uint32_t min_match, int
 		}
 	}
 	paf_close(fp);
+	radix_sort_hit(h.a, h.a + h.n);
 	rhts->rht = h.a;
 	rhts->n = h.n;
 	rhts->m = h.m;
@@ -1370,7 +1388,7 @@ int main(int argc, char *argv[])
 		rhts->n = cleanup_hits(rhts->rht, rhts->n, sn);
 #ifdef DEBUG
 	fprintf(stderr, "[M::%s] finish cleaning\n", __func__);
-#endif	
+#endif
 	rhts->idx = hit_index(rhts->rht, rhts->n, n_ind, f_qn);
 	mt_sort(rhts->rht, rhts->idx, n_ind, cmp_qtn);
 #ifdef DEBUG
