@@ -2,12 +2,6 @@
 
 purge haplotigs and overlaps in an assembly based on read depth
 
-## Overview
-
-purge\_dups pipeline calculates read depth of given read files, even though the pipeline still works without sequencing data, it is high recommended to provide it. Based on the read depth, purge\_dups pipeline will resolve the coverage cutoffs for haploid and diploid sequence. Meanwhile, the pipeline also splits the draft assembly into numbers of sequences, does a self-to-self alignment, chains the segmented consistent alignments. 
-
-![purge_dups pipeline](https://github.com/dfguan/purge_dups/blob/master/purge_dupspipeline.png)
-
 ## Directory Structure
 
 - scripts/pd\_config.py: script to generate a configuration file used by run\_purge\_dups.py.
@@ -16,7 +10,30 @@ purge\_dups pipeline calculates read depth of given read files, even though the 
 - scripts/run\_kcm:  script to make k-mer comparison plot. 
 - scripts/sub.sh: shell script to submit a farm job.
 - src: purge_dups source files
+- src/split_fa: split fasta file by 'N's
+- src/pbcstat: create read depth histogram and base-level read depth for an assembly based on pacbio data
+- src/ngstat: create read depth histogram and base-level read detph for an assembly based on illumina data
+- src/calcuts: calculate coverage cutoffs
+- src/purge_dups: purge haplotigs and overlaps for an assembly
+- src/get_seqs: obtain seqeuences after purging 
  
+
+## Overview
+
+purge\_dups is designed to remove haplotigs and contig overlaps in a *de novo* assembly based on read depth. 
+
+You can follow the [Usage](#usg) part and use our pipeline to purge your assembly or go to the [Pipeline Guide](#pplg) to build your own pipeline.
+
+![purge_dups pipeline](https://github.com/dfguan/purge_dups/blob/master/purge_dupspipeline.png)
+
+
+
+## Dependencies
+
+1. zlib
+2. minimap2 
+3. runner (optional if you build your own pipeline)
+4. python3 (optional)
 
 
 ## Installation
@@ -40,7 +57,7 @@ If you also want to try k-mer comparision plot, run the following commands to in
 git clone https://github.com/dfguan/KMC.git 
 cd KMC && make -j 16
 ```
-## Usage
+## <a name="usg"> </a> Usage
 
 ### Step 1. Use pd\_config.py to generate a configuration file. 
 
@@ -167,6 +184,42 @@ If the busco and k-mer comparison plot scripts are working, please modify them w
 
 - run\_busco: set the PATH variables in run_busco to your own path. 
 - run\_kcm: set kcm_dir to your own KMC directory.
+
+## <a name="pplg"> </a> Pipeline Guide
+The following steps show you how to build your own purge_dups pipeline, steps with same number mean they can be run simultaneously.  
+
+### Step 1. Run minimap2 to align pacbio data and generate paf files, then calculate read depth histogram and base-level read depth. Commands are as follows:
+
+```
+for i in $pb_list
+do
+	minimap2 -xmap-pb $asm $i > $i.paf 
+done
+src/pbcstat *.paf (produces PB.base.cov and PB.stat files)
+src/calcuts PB.stat > cutoffs
+```
+### Step 1. Split an assembly and do a self-self alignment. Commands are following: 
+
+```
+src/split_fa $asm > $asm.split
+minimap2 -xasm5 -DP $asm.split $asm.split > $asm.split.self.paf
+```
+
+### Step 2. Purge haplotigs and overlaps with the following command. 
+
+```
+src/purge_dups -2 -T cutoffs -c PB.base.cov $asm.split.self.paf > dups.bed 
+```
+
+### Step 3. Get primary and haplotig sequences from draft assembly. 
+
+```
+src/get_seqs dups.bed $asm > purged.fa 2> hap.fa 
+``` 
+
+
+
+
 
 
 ## Results
