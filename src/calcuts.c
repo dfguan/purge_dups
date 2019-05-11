@@ -27,6 +27,7 @@
 
 #define swap(T, x, y) do {T tmp = x; x = y; y = tmp; } while(0)
 #define MAX_DEPTH  500
+#define LOWEST_CUT 5
 
 typedef struct {
 	float min_frac;
@@ -283,6 +284,10 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac)
 				} else 
 					locopts.a[i].del = 1; // is local peaks  
 		}
+		//would not like any peak/valleys less than LOWEST_CUT
+		for ( i = 0; i < locopts.n; ++i) 
+			if (locopts.a[i].idx_s < LOWEST_CUT) 
+				locopts.a[i].del = 1;
 		//remove deleted 
 		print_loopt(locopts.a, locopts.n);
 		for ( i = 0, j = 0; j < locopts.n; ++j) {
@@ -403,7 +408,7 @@ help:
 	//process 
 	if (!calcuts(depth2cnt, cutoffs, opts.min_mc, opts.min_frac)) 
    		//output 
-		fprintf(stdout, "5\t%d\t%d\t%d\t%d\t%d\n", cutoffs[0], cutoffs[1], cutoffs[2], cutoffs[3], cutoffs[4]);	
+		fprintf(stdout, "%d\t%d\t%d\t%d\t%d\t%d\n", LOWEST_CUT, cutoffs[0], cutoffs[1], cutoffs[2], cutoffs[3], cutoffs[4]);	
 	return 0;
 }
 

@@ -21,6 +21,7 @@
 /*#include <omp.h>*/
 
 #include "kvec.h"
+#include "ksort.h"
 #include "paf.h"
 #include "cov.h"
 #include "sdict.h"
@@ -47,7 +48,10 @@ typedef struct {
 	uint8_t  qtp:4, ttp:4; // 0:low,1:hap,2:dip,3:high //take 4 bytes due arrangements don't know how to solve, maybe not a problem.
 }eg_hit_t;
 
-enum dup_type {JUNK, HAPLOTIG, PRIMARY, REPEAT, OVLP, UNKNOWN};
+#define hit_key(a) ((a).qns)
+KRADIX_SORT_INIT(hit, eg_hit_t, hit_key, 8)
+
+	enum dup_type {JUNK, HAPLOTIG, PRIMARY, REPEAT, OVLP, UNKNOWN};
 char *dup_type_s[] = {"JUNK", "HAPLOTIG", "PRIMARY", "REPEAT", "OVLP", "UNKNOWN"};
 typedef struct {
 	uint32_t sn:28, tp:3, del:1; //don't think there will be 2G contigs
@@ -797,6 +801,7 @@ int hit_read(char *paf_fn, eg_hits_t *rhts, sdict_t *sn, uint32_t min_match, int
 		}
 	}
 	paf_close(fp);
+	radix_sort_hit(h.a, h.a + h.n);
 	rhts->rht = h.a;
 	rhts->n = h.n;
 	rhts->m = h.m;
