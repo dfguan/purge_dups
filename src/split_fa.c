@@ -40,7 +40,7 @@ int split(char *name, char *seq, uint32_t l)
 	return 0;
 }
 
-int split_fa(char *fn)
+int split_fa(char *fn, int split_by_n)
 {
 	gzFile fp;
 	kseq_t *seq;
@@ -48,7 +48,7 @@ int split_fa(char *fn)
 	if (!fp) return 1;
 	seq = kseq_init(fp);
 	while (kseq_read(seq) >= 0) 
-		split(seq->name.s, seq->seq.s, seq->seq.l);
+		split_by_n ? split(seq->name.s, seq->seq.s, seq->seq.l) : fprintf(stdout, ">%s:%u-%u\n%s\n", seq->name.s, 1, seq->seq.l, seq->seq.s); // notice if larger than 4G error
  	//add some basic statistics maybe 		
 	kseq_destroy(seq);
 	gzclose(fp);
@@ -60,12 +60,28 @@ int split_fa(char *fn)
 int main(int argc, char *argv[])
 {
 
-	char *program, *fafn;
+	char *program, *fafn; 
+	int c;
+	int split_by_n = 1;
    	(program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-	if (argc < 2) {
-		fprintf(stderr, "\n  Usage: %s <FA/FA.GZ>\n", program);
-		return 1;
+	while (~(c=getopt(argc, argv, "nh"))) {
+		switch (c) {
+			case 'n': 
+				split_by_n = 0;
+				break;
+			default:
+help:
+				if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
+				fprintf(stderr, "\nUsage: %s  [<options>] <STAT> ...\n", program);
+				fprintf(stderr, "Options:\n");
+				fprintf(stderr, "         -n    BOOL    block split by N\n");	
+				fprintf(stderr, "         -h             help\n");
+				return 1;	
+		}		
 	}
-	fafn = argv[1];
-	return split_fa(fafn);
+	if (optind + 1 < argc) {
+		fprintf(stderr, "[E::%s] require fa or fa.gz file", __func__); goto help;
+	}
+	fafn = argv[optind];
+	return split_fa(fafn, split_by_n);
 }

@@ -189,7 +189,7 @@ def run_kcm(man, pltfm, skip, spid, fasta, mem, core, kmer, reads, prefix, tmpdi
         jjn = "kcm_{}".format(spid)
         jout = "{}.o".format(jjn)
         jerr = "{}.e".format(jjn)
-        j = hpc(pltfm, cmd=jcmd, core=core, mem = mem, queue = queue, jn=jjn, out=jout, err=jerr)
+        j = hpc(pltfm, cmd=jcmd, core=core, mem = mem, queue = "normal", jn=jjn, out=jout, err=jerr)
         rtn = man.start([j])
         return rtn 
 
@@ -283,7 +283,7 @@ def cont(config_fn, bin_dir, spid, pltfm, _wait, _retries):
     if not rtn and "kcp" in config_dict:
         purged_ref = "{0}/{1}".format(workdir, fasta)
         cur_d = config_dict["kcp"]
-        p = Process(target=run_kcm, args=(man, pltfm, cur_d["skip"], spid, purged_ref, cur_d["mem"], cur_d["core"], cur_d["fofn"], cur_d["prefix"], cur_d["tmpdir"]))
+        p = Process(target=run_kcm, args=(man, pltfm, cur_d["skip"], spid, purged_ref, cur_d["mem"], cur_d["core"], 21, cur_d["fofn"], cur_d["prefix"], cur_d["tmpdir"]))
         procs.append(p)
 
     for p in procs:
