@@ -702,7 +702,7 @@ int add_p(graph_t *g, char *s)
 			/*q[ql-1] = 0;*/
 			uint32_t n_id = add_node(g, q, 0, 0);
 			/*fprintf(stderr, "node: %s  %u\n",q, n_id);*/
-			n_id = n_id << 1 | (c == '-');
+			n_id = n_id << 1 | (c == '+');
 			kv_push(uint32_t, ns, n_id);
 			q = p + 1;
 			
