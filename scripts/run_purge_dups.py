@@ -117,8 +117,8 @@ def cal_cov(man, pltfm, ref, ispb, isdip, fofn, core_lim, mem_lim, queue, skip, 
                 fn_prefix = get_lm_prefix(getfn(fl_strip))
                 out_fn = "{0}/{1}.paf".format(out_dir, fn_prefix)
                 out_fns.append(out_fn)
-
-                jcmd = "minimap2 -x map-pb -t {0} {1} {2} >{3}".format(core_lim, ref, fl_strip, out_fn)
+                idx_opt = "-I {}".format("4G" if os.path.getsize(ref) < 4294967296 else "10G")
+                jcmd = "minimap2 {4} -x map-pb -t {0} {1} {2} >{3}".format(core_lim, ref, fl_strip, out_fn, idx_opt)
                 jjn = "minimap_{}".format(fn_prefix)
                 jout = "{0}/{1}_%J.o".format(out_dir, jjn)
                 jerr = "{0}/{1}_%J.e".format(out_dir, jjn)
