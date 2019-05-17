@@ -143,11 +143,11 @@ This file use several key words to define resource allocation, input files or ou
 **Notice**: **isdip** is deprecated. 
 
 The dictionary "kcp" keeps paramaters for run_kcm script.  
-The dictionary "gs" sets parameters for get\_seqs (purge\_dups executable file), designed to bin primary contigs and haplotigs.  
+The dictionary "gs" sets parameters for get\_seqs (purge\_dups executable file), designed to produce primary contigs and haplotigs.  
 The dictionary "pd" sets parameters for purge\_dups (purge\_dups executable file), designed to purge haplotigs and overlaps in an assembly.  
 The dictionary **"cc"** sets parameters for **minimap2/bwa**.  
-The dictionary **sa** sets parameters for minimap2.  
-The dictionary busco sets parameters for run\_busco. 
+The dictionary **"sa"** sets parameters for minimap2.  
+The dictionary "busco" sets parameters for run\_busco. 
 
 ### Step 3. Use run\_purge\_dups.py to run the pipeline
 
@@ -198,6 +198,8 @@ done
 src/pbcstat *.paf (produces PB.base.cov and PB.stat files)
 src/calcuts PB.stat > cutoffs
 ```
+**Notice** If you have a large genome, please set minimap2 ``-I`` option to ensure the genome can be indexed once, otherwise read depth can be wrong. 
+
 ### Step 1. Split an assembly and do a self-self alignment. Commands are following: 
 
 ```
