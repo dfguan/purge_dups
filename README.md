@@ -178,6 +178,12 @@ Example:
 python scripts/run_purge_dups.py config.iHelSar1.json src iHelSar1
 ```
 
+After the pipeline is finished, there will be four new directories in the working directory (set in the configuration file).  
+
+- **coverage**: coverage cutoffs, coverage histogram and base-level coverage files
+- **split_aln**: segmented assembly file and a self-alignment paf file. 
+- **purge_dups**: duplicate sequence list. 
+- **seqs**: purged primary contigs ending with .purge.fa and haplotigs ending with .red.fa, also K-mer comparison plot and busco results are also in this directory.  
 ### Other Modification
 
 If the busco and k-mer comparison plot scripts are working, please modify them with the following instructions. 
@@ -219,29 +225,7 @@ src/purge_dups -2 -T cutoffs -c PB.base.cov $asm.split.self.paf > dups.bed
 src/get_seqs dups.bed $asm > purged.fa 2> hap.fa 
 ``` 
 
-
-
-
-
-
-## Results
-
-After the pipeline is finished, there will be four new directories in the working directory (set in the configuration file).  
-
-- **coverage**: coverage cutoffs, coverage histogram and base-level coverage files
-- **split_aln**: segmented assembly file and a self-alignment paf file. 
-- **purge_dups**: duplicate sequence list. 
-- **seqs**: purged primary contigs ending with .purge.fa and haplotigs ending with .red.fa, also K-mer comparison plot and busco results are also in this directory.  
-
 ## Contact
 
 Wellcome to use, you can use github webpage to report an issue or email me dfguan9@gmail.com with any advice. 
-
-
-
-
-
-
-
-
 
