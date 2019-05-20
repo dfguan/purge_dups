@@ -27,11 +27,14 @@ KSEQ_INIT(gzFile, gzread, gzseek)
 typedef struct {
 	uint32_t sn; //don't think there will be 2G contigs
 	uint32_t s, e;
+	uint32_t bst_sn;
 }dup_t;
 
 typedef struct {
 	char *name;
 	uint32_t s,e;
+	char *tp;
+	char *bst_name;
 }dup_s;
 
 
@@ -53,6 +56,16 @@ int print_dups2(dup_t *dups, size_t n, char *name)
 		fprintf(stdout, "%s\t%u\t%u\n", name, dp[i].s, dp[i].e);
 	return 0;
 }
+int update_best_sn(dup_v *dups, sdict_t *sn)
+{
+	size_t n = dups->n;	
+	dup_t *dp = dups->a;
+	size_t i;
+	for ( i = 0; i < n; ++i) 
+		if (sn->seq[dp[i].sn].type == 1) 
+			while (sn->seq[dp[i].bst_sn].type == 1) dp[i].bst_sn = sn->seq[dp[i].bst_sn].best_hit;//should we check if best_sn == -1? this can't happen
+	return 0;
+}
 int parse_dup(char *s, int l, dup_s *k)
 {
 	char *q, *r;
@@ -63,9 +76,11 @@ int parse_dup(char *s, int l, dup_s *k)
 		if (t == 0) k->name= q;
 		else if (t == 1) k->s = strtol(q, &r, 10);
 		else if (t == 2) k->e = strtol(q, &r, 10);
+		else if (t == 3) k->tp = q;
+		else if (t == 4) k->bst_name = q;
 		++t, q = i < l? &s[i+1] : 0;
 	}
-	if (t < 2) return -1;
+	if (t < 4) return -1;
 	return 0;
 }
 
@@ -96,29 +111,32 @@ int col_dups(char *fn, sdict_t *sn, dup_v *dups)
 	kstring_t buf = {0, 0, 0};
 	int dret;
 	char *name = 0;
-	uint32_t rid;	
+	uint32_t rid, brid;	
 	while (ks_getuntil(ks, KS_SEP_LINE, &buf, &dret) >= 0) {
 		parse_dup(buf.s, buf.l, &d);
 		if (!name || strcmp(name, d.name)) {
 			if (name) { 
 				free(name); 
-				dup_t t = (dup_t){rid, 0, 0};
+				dup_t t = (dup_t){rid, 0, 0, -1};
 				kv_push(dup_t, *dups, t);	
 			}
 			name = strdup(d.name);	
 			rid = sd_put(sn, name, 0, 1);	
-			dup_t t = (dup_t){rid, 0, 0};
+			brid = d.bst_name[0] != '*' ? sd_put(sn, name, 0, 1): -1;	
+			if (!strcmp(d.tp, "HAPLOTIG")) sn->seq[rid].type = 1, sn->seq[rid].best_hit = brid; 
+			dup_t t = (dup_t){rid, 0, 0, brid};
 			kv_push(dup_t, *dups, t);	
 		}
-		dup_t k = (dup_t) {rid, d.s, d.e};
+		brid = d.bst_name[0] != '*' ? sd_put(sn, name, 0, 1): -1;	
+		dup_t k = (dup_t) {rid, d.s, d.e, brid};
 		kv_push(dup_t, *dups, k);	
 	}
-	dup_t k = (dup_t) {rid, 0, 0};
+	dup_t k = (dup_t) {rid, 0, 0, -1};
 	kv_push(dup_t, *dups, k);	
 	return 0;
 }
 
-int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml)
+int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml, sdict_t *sn)
 {
 	size_t i;
 	if (n <= 2) {
@@ -143,20 +161,25 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 		/*}*/
 		seq[poi] = 0;
 	}
-	uint32_t happoi = 0;
+	if (poi) 
+		fprintf(stdout, ">%s\n%s\n", name, seq);
+	uint32_t happoi = 0, outpoi;
 	for (i = 1; i < n - 1; ++i) {
 		uint32_t st, ed;
 		st = dp[i].s;
 		ed = dp[i].e;
+		outpoi = happoi;
 		memcpy(hapseq + happoi, s + st - 1, ed - st + 1);	
 		happoi += (ed - st + 1);
 		hapseq[happoi] = 0;
+		fprintf(stderr, ">%s_%4d\n%s\n", sn->seq[dp[i].bst_sn].name, sn->seq[dp[i].bst_sn].aux++, sn->seq, hapseq + outpoi); 
 	}	
-	if (poi > ml) {
-		fprintf(stdout, ">%s\n%s\n", name, seq);
-		fprintf(stderr, ">%s\n%s\n", name, hapseq);
-	} else 
-		fprintf(stderr, ">%s\n%s\n", name, s);
+
+	/*if (poi > ) {*/
+		/*fprintf(stdout, ">%s\n%s\n", name, seq);*/
+		/*fprintf(stderr, ">%s\n%s\n", name, hapseq);*/
+	/*} else */
+		/*fprintf(stderr, ">%s\n%s\n", name, s);*/
 	free(seq);
 	free(hapseq);
 	return 0;
@@ -174,9 +197,9 @@ int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml)
 	dup_t *dp = dups.a;
 	while (kseq_read(seq) >= 0) {
 		if (~(sid = sd_get(sn, seq->name.s))) {
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml);
+			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml, sn);
 		} else 
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml);
+			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml, sn);
 	} 
  	//add some basic statistics maybe 		
 	kseq_destroy(seq);
@@ -222,6 +245,7 @@ help:
 	sdict_t *sn = sd_init();
 	dup_v dups = {0, 0, 0};	
 	col_dups(opts.dup_fn, sn, &dups);	
+	update_best_sn(&dups, sn);
 	/*print_dups(&dups, sn);*/
 	uint64_t *idx = malloc(sizeof(uint64_t) * sn->n_seq);
 	dup_idx(dups, idx);
