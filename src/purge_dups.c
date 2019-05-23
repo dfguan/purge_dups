@@ -1308,14 +1308,14 @@ int merge_dups(dup_v *dups)
 	if (!n) return 0;
 	uint32_t s = dp[0].s, e= dp[0].e, tp = dp[0].tp, bst_sn = dp[0].bst_sn;
 	for ( i = 1, j= 0; i <= n; ++i) {
-		if (i == n || dp[i].sn != dp[j].sn || dp[i].s > e || dp[i].bst_sn != dp[j].bst_sn) {
+		if (i == n || dp[i].sn != dp[j].sn || dp[i].s > e) {
 			dp[j].s = s, dp[j].e = e, dp[j].del = 0, dp[j].tp = tp, dp[j].bst_sn = bst_sn;
 			if (i != n) s=dp[i].s, e= dp[i].e, tp = dp[i].tp, bst_sn = dp[i].bst_sn;
 		   	j = i;	
 		} else {
 			if (dp[i].e > e) 
 				e = dp[i].e;
-			if (dp[i].tp != tp) //I guess this wont happend, but what if report to me?  
+			if (dp[i].tp != tp) //I guess this wont happend, but what if report to me? best_sn != j.best_sn ? kind ignore this right now would be a problem? 
 				tp = UNKNOWN;
 			dp[i].del = 1;
 		}

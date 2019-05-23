@@ -45,7 +45,7 @@ int print_dups(dup_t *dups, size_t n, sdict_t *dup_n)
 	dup_t *dp = dups;
 	size_t i;
 	for ( i = 0; i < n; ++i ) 
-		fprintf(stdout, "%s\t%u\t%u\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e);
+		fprintf(stdout, "%s\t%u\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dp[i].bst_sn != 0XFFFFFFFF ? dup_n->seq[dp[i].bst_sn].name : "*");
 	return 0;
 }
 int print_dups2(dup_t *dups, size_t n, char *name)
@@ -62,8 +62,9 @@ int update_best_sn(dup_v *dups, sdict_t *sn)
 	dup_t *dp = dups->a;
 	size_t i;
 	for ( i = 0; i < n; ++i) 
-		if (sn->seq[dp[i].sn].type == 1) 
+		if (dp[i].bst_sn != 0XFFFFFFFF)  {
 			while (sn->seq[dp[i].bst_sn].type == 1) dp[i].bst_sn = sn->seq[dp[i].bst_sn].best_hit;//should we check if best_sn == -1? this can't happen
+		}
 	return 0;
 }
 int parse_dup(char *s, int l, dup_s *k)
@@ -90,9 +91,9 @@ int dup_idx(dup_v dups, uint64_t *idx)
 	size_t i, last;
 	dup_t *dp = dups.a;
 	size_t n = dups.n;
-
 	for ( i = 1, last = 0; i <= n; ++i ) {
 		if (i == n || dp[i].sn != dp[last].sn) {
+			/*fprintf(stderr, "%d\t%d\n", dp[last].sn, i - last);*/
 			idx[dp[last].sn] = (uint64_t) (last << 32) | (i - last);
 			last = i;
 		}
@@ -122,12 +123,18 @@ int col_dups(char *fn, sdict_t *sn, dup_v *dups)
 			}
 			name = strdup(d.name);	
 			rid = sd_put(sn, name, 0, 1);	
-			brid = d.bst_name[0] != '*' ? sd_put(sn, name, 0, 1): -1;	
-			if (!strcmp(d.tp, "HAPLOTIG")) sn->seq[rid].type = 1, sn->seq[rid].best_hit = brid; 
+			if (d.bst_name[0] != '*') {
+				brid = sd_put(sn, d.bst_name, 0, 1);
+				if (d.tp[0] != 'O') sn->seq[rid].type = 1;
+				sn->seq[rid].best_hit = brid;		
+			} else 
+				brid = -1;
+			/*brid = d.bst_name[0] != '*' ? sd_put(sn, name, 0, 1): -1;	*/
+			/*if (!strcmp(d.tp, "HAPLOTIG")) sn->seq[rid].type = 1, sn->seq[rid].best_hit = brid; */
 			dup_t t = (dup_t){rid, 0, 0, brid};
 			kv_push(dup_t, *dups, t);	
 		}
-		brid = d.bst_name[0] != '*' ? sd_put(sn, name, 0, 1): -1;	
+		brid = d.bst_name[0] != '*' ? sd_put(sn, d.bst_name, 0, 1): -1;	
 		dup_t k = (dup_t) {rid, d.s, d.e, brid};
 		kv_push(dup_t, *dups, k);	
 	}
@@ -140,7 +147,10 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 {
 	size_t i;
 	if (n <= 2) {
+		char *dash_poi = strchr(name, '_');
+		if (dash_poi) *dash_poi = 0;
 		fprintf(stdout, ">%s\n%s\n", name, s);	
+		if (dash_poi) *dash_poi = '_';
 		return 0;			
 	}
 	dp[n-1].s = dp[n-1].e = l + 1;
@@ -161,10 +171,16 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 		/*}*/
 		seq[poi] = 0;
 	}
-	if (poi) 
+	if (poi) {
+		char *dash_poi = strchr(name, '_');	
+		if (dash_poi) *dash_poi = 0;
 		fprintf(stdout, ">%s\n%s\n", name, seq);
+		if (dash_poi) *dash_poi = '_';
+	} 
 	uint32_t happoi = 0, outpoi;
 	for (i = 1; i < n - 1; ++i) {
+
+		/*fprintf(stderr, "%s\t%d\t%s\n", name, i, dp[i].bst_sn != 0XFFFFFFFF ? sn->seq[dp[i].bst_sn].name : "null");*/
 		uint32_t st, ed;
 		st = dp[i].s;
 		ed = dp[i].e;
@@ -172,7 +188,18 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 		memcpy(hapseq + happoi, s + st - 1, ed - st + 1);	
 		happoi += (ed - st + 1);
 		hapseq[happoi] = 0;
-		fprintf(stderr, ">%s_%4d\n%s\n", sn->seq[dp[i].bst_sn].name, sn->seq[dp[i].bst_sn].aux++, sn->seq, hapseq + outpoi); 
+		if (dp[i].bst_sn != 0XFFFFFFFF) {
+			char *dash_poi = strchr(sn->seq[dp[i].bst_sn].name, '_');	
+			if (dash_poi) *dash_poi = 0;
+			fprintf(stderr, ">%s_%04u\n%s\n", sn->seq[dp[i].bst_sn].name, ++sn->seq[dp[i].bst_sn].aux, hapseq + outpoi); 
+			if (dash_poi) *dash_poi = '_';
+		}
+		else {
+			char *dash_poi = strchr(name, '_');	
+			if (dash_poi) *dash_poi = 0;
+			fprintf(stderr, ">%s_0001\n%s\n", name, hapseq + outpoi); 
+			if (dash_poi) *dash_poi = '_';
+		}
 	}	
 
 	/*if (poi > ) {*/
@@ -197,6 +224,7 @@ int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml)
 	dup_t *dp = dups.a;
 	while (kseq_read(seq) >= 0) {
 		if (~(sid = sd_get(sn, seq->name.s))) {
+			/*fprintf(stderr, "%u", (uint32_t) idx[sid]);*/
 			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml, sn);
 		} else 
 			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml, sn);
@@ -246,9 +274,11 @@ help:
 	dup_v dups = {0, 0, 0};	
 	col_dups(opts.dup_fn, sn, &dups);	
 	update_best_sn(&dups, sn);
-	/*print_dups(&dups, sn);*/
-	uint64_t *idx = malloc(sizeof(uint64_t) * sn->n_seq);
+	/*print_dups(dups.a, dups.n, sn);*/
+	uint64_t *idx = calloc(sn->n_seq, sizeof(uint64_t));
 	dup_idx(dups, idx);
+	/*int i = 0;*/
+	/*for (i = 0; i < sn->n_seq; ++i) fprintf(stderr, "%s\t%d\n", sn->seq[i].name, (uint32_t)idx[i]);	*/
 	get_seqs(opts.fafn, dups, idx, sn, opts.ml);
 	free(idx);
 	return 0;		
