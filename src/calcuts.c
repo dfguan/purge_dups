@@ -262,7 +262,8 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac)
 		//merge near values	
 		int i, j, del = 0;
 		for (i = 0, j = 1; j < locopts.n; ++j) {
-			if (locopts.a[j].idx_s < locopts.a[i].idx_e + 3 && (float)locopts.a[j].cnt/locopts.a[i].cnt >0.95) {
+			/*if (locopts.a[j].idx_s < locopts.a[i].idx_e + 3 && (float)locopts.a[j].cnt/locopts.a[i].cnt >0.95) {*/
+			if (locopts.a[j].idx_s <= locopts.a[i].idx_e + 3) { // or better to compare their freqs? 
 			if (locopts.a[j].cnt > locopts.a[i].cnt) 
 				locopts.a[i].cnt = locopts.a[j].cnt; 
 				locopts.a[i].idx_e = locopts.a[j].idx_s;	
