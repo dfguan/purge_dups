@@ -146,11 +146,16 @@ int col_dups(char *fn, sdict_t *sn, dup_v *dups)
 int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml, sdict_t *sn)
 {
 	size_t i;
+	char b;
 	if (n <= 2) {
-		char *dash_poi = strchr(name, '_');
-		if (dash_poi) *dash_poi = 0;
+		char *dash_poi = strchr(name, 'F');
+		if (dash_poi) b = *(dash_poi + 1), *(dash_poi + 1) = 0;
+		else {
+			fprintf(stderr, "Error: %s not a proper falcon contig name\n", name);
+			return 1;
+		}
 		fprintf(stdout, ">%s\n%s\n", name, s);	
-		if (dash_poi) *dash_poi = '_';
+		*(dash_poi + 1) = b;
 		return 0;			
 	}
 	dp[n-1].s = dp[n-1].e = l + 1;
@@ -172,10 +177,14 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 		seq[poi] = 0;
 	}
 	if (poi) {
-		char *dash_poi = strchr(name, '_');	
-		if (dash_poi) *dash_poi = 0;
+		char *dash_poi = strchr(name, 'F');
+		if (dash_poi) b = *(dash_poi + 1), *(dash_poi + 1) = 0;
+		else {
+			fprintf(stderr, "Error: %s not a proper falcon contig name\n", name);
+			return 1;
+		}
 		fprintf(stdout, ">%s\n%s\n", name, seq);
-		if (dash_poi) *dash_poi = '_';
+		*(dash_poi + 1) = b;
 	} 
 	uint32_t happoi = 0, outpoi;
 	for (i = 1; i < n - 1; ++i) {
@@ -190,15 +199,23 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 		hapseq[happoi] = 0;
 		if (dp[i].bst_sn != 0XFFFFFFFF) {
 			char *dash_poi = strchr(sn->seq[dp[i].bst_sn].name, '_');	
-			if (dash_poi) *dash_poi = 0;
+			if (dash_poi) b = *(dash_poi + 1), *(dash_poi + 1) = 0;
+			else {
+				fprintf(stderr, "Error: %s not a proper falcon contig name\n", sn->seq[dp[i].bst_sn].name);
+				return 1;
+			}
 			fprintf(stderr, ">%s_%04u\n%s\n", sn->seq[dp[i].bst_sn].name, ++sn->seq[dp[i].bst_sn].aux, hapseq + outpoi); 
-			if (dash_poi) *dash_poi = '_';
+			*(dash_poi + 1) = b;
 		}
 		else {
 			char *dash_poi = strchr(name, '_');	
-			if (dash_poi) *dash_poi = 0;
+			if (dash_poi) b = *(dash_poi + 1), *(dash_poi + 1) = 0;
+			else {
+				fprintf(stderr, "Error: %s not a proper falcon contig name\n", sn->seq[dp[i].bst_sn].name);
+				return 1;
+			}
 			fprintf(stderr, ">%s_0001\n%s\n", name, hapseq + outpoi); 
-			if (dash_poi) *dash_poi = '_';
+			*(dash_poi + 1) = b;
 		}
 	}	
 
@@ -222,17 +239,24 @@ int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml)
 	seq = kseq_init(fp);
 	uint32_t sid;
 	dup_t *dp = dups.a;
+	int ret = 0;
 	while (kseq_read(seq) >= 0) {
 		if (~(sid = sd_get(sn, seq->name.s))) {
 			/*fprintf(stderr, "%u", (uint32_t) idx[sid]);*/
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml, sn);
+			if (get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml, sn)) {
+			ret = 1;
+			break;
+			}
 		} else 
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml, sn);
+			if (get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml, sn)) {
+				ret = 1;
+				break;
+			} 
 	} 
  	//add some basic statistics maybe 		
 	kseq_destroy(seq);
 	gzclose(fp);
-	return 0;
+	return ret;
 }
 typedef struct {
 	char *dup_fn;
