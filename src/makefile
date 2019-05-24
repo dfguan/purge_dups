@@ -8,7 +8,7 @@ PROG = calcuts purge_dups pbcstat split_fa get_seqs  ngscstat
 .SUFFIXS:.c .o
 
 all:$(PROG)
-
+	mkdir -p ../bin && cp $(PROG) ../bin
 calcuts: calcuts.o 
 	$(CC)  $(CFLAGS) $^ -o $@ $(LDFLAGS) 
 purge_dups:opt.o sdict.o asset.o cov.o paf.o purge_dups.o
