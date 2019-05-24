@@ -9,14 +9,14 @@ purge haplotigs and overlaps in an assembly based on read depth
 - scripts/run\_busco:  script to run busco, dependency: busco.
 - scripts/run\_kcm:  script to make k-mer comparison plot. 
 - scripts/sub.sh: shell script to submit a farm job.
-- src: purge_dups source files
-- src/split_fa: split fasta file by 'N's
-- src/pbcstat: create read depth histogram and base-level read depth for an assembly based on pacbio data
-- src/ngstat: create read depth histogram and base-level read detph for an assembly based on illumina data
-- src/calcuts: calculate coverage cutoffs
-- src/purge_dups: purge haplotigs and overlaps for an assembly
-- src/get_seqs: obtain seqeuences after purging 
- 
+- src: purge_dups source files.
+- src/split_fa: split fasta file by 'N's.
+- src/pbcstat: create read depth histogram and base-level read depth for an assembly based on pacbio data.
+- src/ngstat: create read depth histogram and base-level read detph for an assembly based on illumina data.
+- src/calcuts: calculate coverage cutoffs.
+- src/purge_dups: purge haplotigs and overlaps for an assembly.
+- src/get_seqs: obtain seqeuences after purging. 
+- bin/\* : all purge_dups excutables.
 
 ## Overview
 
@@ -57,7 +57,7 @@ If you also want to try k-mer comparision plot, run the following commands to in
 git clone https://github.com/dfguan/KMC.git 
 cd KMC && make -j 16
 ```
-## <a name="usg"> </a> Usage
+## <a name="usg"> </a> Usage (Only tested on farm)
 
 ### Step 1. Use pd\_config.py to generate a configuration file. 
 
@@ -201,28 +201,28 @@ for i in $pb_list
 do
 	minimap2 -xmap-pb $asm $i > $i.paf 
 done
-src/pbcstat *.paf (produces PB.base.cov and PB.stat files)
-src/calcuts PB.stat > cutoffs
+bin/pbcstat *.paf (produces PB.base.cov and PB.stat files)
+bin/calcuts PB.stat > cutoffs 2>calcults.log
 ```
 **Notice** If you have a large genome, please set minimap2 ``-I`` option to ensure the genome can be indexed once, otherwise read depth can be wrong. 
 
 ### Step 1. Split an assembly and do a self-self alignment. Commands are following: 
 
 ```
-src/split_fa $asm > $asm.split
+bin/split_fa $asm > $asm.split
 minimap2 -xasm5 -DP $asm.split $asm.split > $asm.split.self.paf
 ```
 
 ### Step 2. Purge haplotigs and overlaps with the following command. 
 
 ```
-src/purge_dups -2 -T cutoffs -c PB.base.cov $asm.split.self.paf > dups.bed 
+bin/purge_dups -2 -T cutoffs -c PB.base.cov $asm.split.self.paf > dups.bed 2> purge_dups.log
 ```
 
 ### Step 3. Get primary and haplotig sequences from draft assembly. 
 
 ```
-src/get_seqs dups.bed $asm > purged.fa 2> hap.fa 
+bin/get_seqs dups.bed $asm > purged.fa 2> hap.fa 
 ``` 
 
 ## Contact
