@@ -75,11 +75,12 @@ help:
 				fprintf(stderr, "\nUsage: %s  [<options>] <STAT> ...\n", program);
 				fprintf(stderr, "Options:\n");
 				fprintf(stderr, "         -n    BOOL    block split by N\n");	
-				fprintf(stderr, "         -h             help\n");
+				fprintf(stderr, "         -h            help\n");
+				fprintf(stderr, "\n\nNotice: please set \"-n\" if you do not want break your scaffols into contigs.\n");
 				return 1;	
 		}		
 	}
-	if (optind + 1 < argc) {
+	if (optind + 1 > argc) {
 		fprintf(stderr, "[E::%s] require fa or fa.gz file", __func__); goto help;
 	}
 	fafn = argv[optind];

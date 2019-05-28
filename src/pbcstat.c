@@ -98,7 +98,7 @@ int aa_pb(char *paf_fn[], int n_paf, int min_cov, int max_cov, int min_mq, uint3
 	char *type = "PB";
 	char *desc = "pacbio data";
 
-	print_coverage_stat(ca, ctgs, type, out_dir);
+	print_coverage_stat(ca, max_cov, ctgs, type, out_dir);
 	print_base_coverage(ca, ctgs, type, out_dir);
 	print_coverage_wig(ca, ctgs, type, 1024, out_dir);
 #ifdef DEBUG
@@ -151,8 +151,8 @@ int main(int argc, char *argv[])
 help:	
 				fprintf(stderr, "\nUsage: aa_pb [options] <PAF_FILE> ...\n");
 				fprintf(stderr, "Options:\n");	
-				fprintf(stderr, "         -m    INT      minimum coverage [5]\n");	
-				fprintf(stderr, "         -M    INT      maximum coverage [150]\n");
+				/*fprintf(stderr, "         -m    INT      minimum coverage [5]\n");	*/
+				fprintf(stderr, "         -M    INT      maximum coverage [500]\n");
 				fprintf(stderr, "         -f    FLOAT    minimum mapping length ratio [0]\n");	
 				fprintf(stderr, "         -q    INT      minimum mapping quality [-1]\n");	
 				fprintf(stderr, "         -l    INT      flanking space [0]\n");

@@ -24,7 +24,6 @@
 #include "ksort.h"
 #define pos_key(a) (a)
 KRADIX_SORT_INIT(pos, uint32_t, pos_key, 4)
-#define MAX_DEPTH 500
 void cov_ary_push(cov_ary_t *c, uint32_t s, uint32_t e, int cov)
 {
 	if (c->n >= c->m) {
@@ -255,7 +254,7 @@ void print_base_coverage(cov_ary_t *ca, sdict_t* ctgs, char *tp, char *out_dir)
 
 }
 
-void print_coverage_stat(cov_ary_t *ca, sdict_t* ctgs, char *tp, char *out_dir)
+void print_coverage_stat(cov_ary_t *ca, int max_cov, sdict_t* ctgs, char *tp, char *out_dir)
 {
 	char *wigname = malloc(strlen(tp) + strlen(out_dir) + 10);
 	strcpy(wigname, out_dir);
@@ -265,19 +264,19 @@ void print_coverage_stat(cov_ary_t *ca, sdict_t* ctgs, char *tp, char *out_dir)
 	FILE *fp = fopen(wigname, "w");
 	if (!fp) return;
 	int i, j;
-	uint32_t *freq = (uint32_t *)calloc(MAX_DEPTH + 1, sizeof(uint32_t));
+	uint32_t *freq = (uint32_t *)calloc(max_cov + 1, sizeof(uint32_t));
 	for ( i = 0; i < ctgs->n_seq; ++i) {
 		if (ca[i].n) {
 			for (j = 0; j < ca[i].n; ++j) {
 				int coverage = ca[i].intv[j].coverage;
 				uint32_t s = ca[i].intv[j].s;
 				uint32_t e = ca[i].intv[j].e;
-				if (coverage >= MAX_DEPTH) coverage = MAX_DEPTH;
+				if (coverage >= max_cov) coverage = max_cov;
 				freq[coverage] += (e-s+1);
 			}
 		}
 	}
-	for ( i = 0; i <= MAX_DEPTH; ++i) 
+	for ( i = 0; i <= max_cov; ++i) 
 		fprintf(fp, "%d\t%u\n", i, freq[i]);
 	fclose(fp);	
 	free(freq);

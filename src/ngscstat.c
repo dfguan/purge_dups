@@ -191,7 +191,7 @@ ctg_pos_t *col_pos(cord_t *cc, int n, sdict_t *ctgs)
 /*ctg_pos_t *col_pos(bc_ary_t *bc_l, uint32_t min_bc, uint32_t max_bc, uint32_t min_inner_bcn, uint32_t min_mol_len, int n_targets)*/
 	/*cord_t *cc = col_cords(bc_l, min_bc, max_bc, min_inner_bcn, max_span, min_mol_len, ctgs->n_seq, ctgs);	*/
 
-int ngscstat(char *bam_fn[], int n_bam, int min_mq, uint32_t max_is, int opt, char *out_dir)
+int ngscstat(char *bam_fn[], int n_bam, int min_mq, uint32_t max_is, int max_cov, int opt, char *out_dir)
 {
 #ifdef VERBOSE
 	fprintf(stderr, "[M::%s] collecting contigs \n", __func__);
@@ -238,7 +238,7 @@ int ngscstat(char *bam_fn[], int n_bam, int min_mq, uint32_t max_is, int opt, ch
 	char *type = "TX";
 	char *desc = "10x data";
 
-	print_coverage_stat(ca, ctgs, type, out_dir);
+	print_coverage_stat(ca, max_cov, ctgs, type, out_dir);
 	print_base_coverage(ca, ctgs, type, out_dir);
 	
 	cov_ary_destroy(ca, ctgs->n_seq); //a little bit messy
@@ -256,6 +256,7 @@ int main(int argc, char *argv[])
 	int c;
 	int min_mq = 30;
 	uint32_t max_is=1000;
+	int max_cov = 500;
 	char *r;
 	char *out_dir = ".";
 	int option = 0; //the way to calculate molecule length //internal parameters not allowed to adjust by users
@@ -276,6 +277,7 @@ help:
 				fprintf(stderr, "\nUsage: ngscstat [options] <BAM_FILEs> ...\n");
 				fprintf(stderr, "Options:\n");
 				fprintf(stderr, "         -q    INT      minimum alignment quality [30]\n");
+				fprintf(stderr, "         -M    INT      maximum read depth [500]\n");
 				/*fprintf(stderr, "         -S    INT      minimum aislignment score [0]\n");*/
 				fprintf(stderr, "         -L    INT      maximum insert size [1000]\n");
 				fprintf(stderr, "         -h             help\n");
@@ -289,7 +291,8 @@ help:
 	char **bam_fn = argv+optind;
 	int n_bam = argc - optind;
 	fprintf(stderr, "Program starts\n");	
-	ngscstat(bam_fn, n_bam,  min_mq, max_is, option, out_dir);
+	ngscstat(bam_fn, n_bam,  min_mq, max_is, max_cov, option, out_dir);
+	fprintf(stderr, "Program ends\n");	
 	return 0;	
 }
 

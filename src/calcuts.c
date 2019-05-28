@@ -390,8 +390,8 @@ int main(int argc, char *argv[])
 help:	
 				fprintf(stderr, "\nUsage: %s  [<options>] <STAT> ...\n", program);
 				fprintf(stderr, "Options:\n");
-				fprintf(stderr, "         -f    FLOAT    minimum depth count fraction [.1]\n");	
-				fprintf(stderr, "         -c    INT      minimum spanning hump [7]\n");
+				fprintf(stderr, "         -f    FLOAT    minimum depth count fraction to maximum depth count [.1]\n");	
+				/*fprintf(stderr, "         -c    INT      minimum spanning hump [7]\n");*/
 				/*fprintf(stderr, "         -d    BOOL     diploid assembly [FALSE]\n");*/
 				fprintf(stderr, "         -h             help\n");
 				return 1;	

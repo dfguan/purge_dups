@@ -27,18 +27,18 @@ int help()
 	fprintf(stderr, "Options:\n");	
 	/*fprintf(stderr, "         -r    FLOAT    minimum overlap ratio for an alignment [0.8]\n");	*/
 	
-	fprintf(stderr, "         -a    INT      minimum best match fraction [50]\n");
-	fprintf(stderr, "         -b    INT      minimum max match fraction [200]\n");
-	fprintf(stderr, "         -m    INT      minimum matching bases [500]\n");
-	fprintf(stderr, "         -G    INT      maximum gap size for 2nd round channing [50K]\n");
 	fprintf(stderr, "         -c    STR      base-level coverage file [NULL]\n");
 	fprintf(stderr, "         -T    STR      cutoffs file [NULL]\n");
+	fprintf(stderr, "         -f    INT      minimum fraction of haploid/diploid/bad/repetitive bases in a sequence [.8]\n")	;
+	fprintf(stderr, "         -a    INT      minimum alignment score [50]\n");
+	fprintf(stderr, "         -b    INT      minimum max match score [200]\n");
+	fprintf(stderr, "         -2    BOOL     2 rounds chaining [FALSE]\n")	;
+	fprintf(stderr, "         -m    INT      minimum matching bases for chaining [500]\n");
 	fprintf(stderr, "         -M    INT      maximum gap size for chaining [20K]\n")	;
-	fprintf(stderr, "         -f    INT      minimum fraction of haploid/diploid/bad/repetitive bases in a sequence [.55, >.50]\n")	;
+	fprintf(stderr, "         -G    INT      maximum gap size for 2nd round chaining [50K]\n");
+	fprintf(stderr, "         -l    INT      minimum alignment block for an overlap [10K]\n")	;
 	fprintf(stderr, "         -E    INT      maximum extension for contig ends [15K]\n")	;
-	fprintf(stderr, "         -l    INT      minimum alignment block for duplicates [10K]\n")	;
-	fprintf(stderr, "         -r    BOOL     read to reference alignment [FALSE]\n")	;
-	fprintf(stderr, "         -2    BOOL     2 rounds merging [FALSE]\n")	;
+	/*fprintf(stderr, "         -r    BOOL     read to reference alignment [FALSE]\n")	;*/
 	fprintf(stderr, "         -h             help\n")	;
 	return 0;
 }
@@ -47,7 +47,7 @@ int parse_args(int argc, char *argv[], opt *o)
 {
 	o->max_gs = 20000;
 	o->max_gs2rd = 50000;
-	o->min_bl = 500;
+	o->min_bl = 500; // mislabeled should be ml
 	o->max_ext = 15000;
 	o->min_dup_bl = 10000;
 	o->s2s = 1;

@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
 help:	
 				fprintf(stderr, "\nUsage: %s  [<options>] <DUPs.BED> <FASTA> \n", program);
 				fprintf(stderr, "Options:\n");
-				fprintf(stderr, "         -l    INT      minimum sequence length [10000]\n");	
+				fprintf(stderr, "         -l    INT      minimum sequence length [10,000]\n");	
 				fprintf(stderr, "         -h             help\n");
 				return 1;	
 		}		
