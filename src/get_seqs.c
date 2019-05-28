@@ -198,7 +198,7 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 		happoi += (ed - st + 1);
 		hapseq[happoi] = 0;
 		if (dp[i].bst_sn != 0XFFFFFFFF) {
-			char *dash_poi = strchr(sn->seq[dp[i].bst_sn].name, '_');	
+			char *dash_poi = strchr(sn->seq[dp[i].bst_sn].name, 'F');	
 			if (dash_poi) b = *(dash_poi + 1), *(dash_poi + 1) = 0;
 			else {
 				fprintf(stderr, "Error: %s not a proper falcon contig name\n", sn->seq[dp[i].bst_sn].name);
@@ -208,7 +208,7 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 			*(dash_poi + 1) = b;
 		}
 		else {
-			char *dash_poi = strchr(name, '_');	
+			char *dash_poi = strchr(name, 'F');	
 			if (dash_poi) b = *(dash_poi + 1), *(dash_poi + 1) = 0;
 			else {
 				fprintf(stderr, "Error: %s not a proper falcon contig name\n", sn->seq[dp[i].bst_sn].name);
