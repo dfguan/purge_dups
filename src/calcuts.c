@@ -34,6 +34,9 @@ typedef struct {
 	int   min_mc;
 	char *stat_fn;
 	int isdip;
+	int low_cov;
+	int upper_cov;
+	int dip_cov;
 } opt_t;
 
 typedef struct {
@@ -370,17 +373,28 @@ int main(int argc, char *argv[])
 	opt_t opts;
 	int c;
 	opts.min_mc = 7;
-   	opts.min_frac = .1;	
+   	opts.min_frac = .1;
+	opts.low_cov = opts.dip_cov = opts.upper_cov = -1;	
+	opts.stat_fn = 0;
 	/*opts.isdip = 0;*/
 	char *program;
    	(program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-	while (~(c=getopt(argc, argv, "f:c:h"))) {
+	while (~(c=getopt(argc, argv, "l:m:u:f:c:h"))) {
 		switch (c) {
 			case 'f': 
 				opts.min_frac = atof(optarg);
 				break;
 			case 'c':
 				opts.min_mc = atoi(optarg);
+				break;
+			case 'l':
+				opts.low_cov = atoi(optarg);
+				break;
+			case 'm':
+				opts.dip_cov = atoi(optarg);
+				break;
+			case 'u':
+				opts.upper_cov = atoi(optarg);
 				break;
 			/*case 'd':*/
 				/*opts.isdip = 1;*/
@@ -391,6 +405,9 @@ help:
 				fprintf(stderr, "\nUsage: %s  [<options>] <STAT> ...\n", program);
 				fprintf(stderr, "Options:\n");
 				fprintf(stderr, "         -f    FLOAT    minimum depth count fraction to maximum depth count [.1]\n");	
+				fprintf(stderr, "         -l    INT      lower bound for read depth\n");	
+				fprintf(stderr, "         -m    INT      transition between haploid and diploid\n");	
+				fprintf(stderr, "         -u    INT      upper bound for read depth\n");	
 				/*fprintf(stderr, "         -c    INT      minimum spanning hump [7]\n");*/
 				/*fprintf(stderr, "         -d    BOOL     diploid assembly [FALSE]\n");*/
 				fprintf(stderr, "         -h             help\n");
@@ -399,12 +416,24 @@ help:
 	}
 
 	if (optind + 1 > argc) {
-		fprintf(stderr,"[E::%s] require a stat file!\n", __func__); goto help;
-	}
-	opts.stat_fn = argv[optind];	
+		opts.stat_fn = argv[optind];	
+	} 
 	//read 
-	uint32_t *depth2cnt = read_counts(opts.stat_fn);	
+	if (~opts.dip_cov) {
+		if (~opts.upper_cov) {
+			fprintf(stdout, "%d\t%d\t%d\t%d\t%d\t%d\n", ~opts.low_cov ? opts.low_cov : LOWEST_CUT, opts.dip_cov - 1, opts.dip_cov - 1, opts.dip_cov, opts.dip_cov, opts.upper_cov);	
+			return 0;	
+		} else {
+			fprintf(stderr, "[E::%s] please set high read depth cutoff\n", __func__);
+			return 1;
+		}
+	}
+	if (!opts.stat_fn) {
+		fprintf(stderr, "[E::%s] require a stat file\n", __func__);
+		return 1;
+	}
 	int cutoffs[5];
+	uint32_t *depth2cnt = read_counts(opts.stat_fn);	
 	//process 
 	if (!calcuts(depth2cnt, cutoffs, opts.min_mc, opts.min_frac)) 
    		//output 

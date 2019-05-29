@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from runner.manager import manager
 from runner.hpc import hpc
 from multiprocessing import Process, Pool
