@@ -37,6 +37,7 @@ typedef struct {
 	int low_cov;
 	int upper_cov;
 	int dip_cov;
+	int fhord;
 } opt_t;
 
 typedef struct {
@@ -180,7 +181,7 @@ int get_gaussion(uint32_t *depth2cnt, uint32_t max_idx, uint32_t max_cnt)
 	return 0;	
 }
 
-int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac) 
+int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int fhord) 
 {
 	int max_idx = get_max(depth2cnt);
 	uint32_t max_cnt = depth2cnt[max_idx];
@@ -330,17 +331,20 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac)
 			locopts.n = 2;	
 	} 
 	//check whether this is a haploid or diploid		
-	if (locopts.n) locopts.a[0].idx_s = locopts.a[0].idx_e = max_idx, locopts.a[0].cnt = max_cnt;	
-	else {
-			locopt_t tmp = (locopt_t){max_idx, 1, max_idx, 0, max_cnt};
-			kv_push(locopt_t, locopts, tmp);
-	} 
-
-	int mean = get_mean(depth2cnt);
-	fprintf(stderr, "[M::%s] mean: %d\tmax_idx: %d\n", __func__, mean, max_idx);
 	int isdip = 1; 
-	//hump is on right side is hapliod covrage
-	if (mean <= max_idx) isdip = 0;
+	if (!fhord) {
+		if (locopts.n) locopts.a[0].idx_s = locopts.a[0].idx_e = max_idx, locopts.a[0].cnt = max_cnt;	
+		else {
+				locopt_t tmp = (locopt_t){max_idx, 1, max_idx, 0, max_cnt};
+				kv_push(locopt_t, locopts, tmp);
+		} 
+
+		int mean = get_mean(depth2cnt);
+		fprintf(stderr, "[M::%s] mean: %d\tmax_idx: %d\n", __func__, mean, max_idx);
+		//hump is on right side is hapliod covrage
+		if (mean <= max_idx) isdip = 0;
+	} else if (fhord == 1) 
+		isdip = 0;
 	 if (isdip) {
 		cutoffs[0] = cutoffs[1] = cutoffs[2] = cutoffs[3] = locopts.a[0].idx_s;
 		i = cutoffs[0] >> 2;
@@ -376,10 +380,11 @@ int main(int argc, char *argv[])
    	opts.min_frac = .1;
 	opts.low_cov = opts.dip_cov = opts.upper_cov = -1;	
 	opts.stat_fn = 0;
+	opts.fhord = 0;
 	/*opts.isdip = 0;*/
 	char *program;
    	(program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-	while (~(c=getopt(argc, argv, "l:m:u:f:c:h"))) {
+	while (~(c=getopt(argc, argv, "l:m:u:f:c:d:h"))) {
 		switch (c) {
 			case 'f': 
 				opts.min_frac = atof(optarg);
@@ -396,9 +401,9 @@ int main(int argc, char *argv[])
 			case 'u':
 				opts.upper_cov = atoi(optarg);
 				break;
-			/*case 'd':*/
-				/*opts.isdip = 1;*/
-				/*break;*/
+			case 'd':
+				opts.fhord = atoi(optarg);
+				break;
 			default:
 				if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
 help:	
@@ -409,15 +414,15 @@ help:
 				fprintf(stderr, "         -m    INT      transition between haploid and diploid\n");	
 				fprintf(stderr, "         -u    INT      upper bound for read depth\n");	
 				/*fprintf(stderr, "         -c    INT      minimum spanning hump [7]\n");*/
-				/*fprintf(stderr, "         -d    BOOL     diploid assembly [FALSE]\n");*/
+				fprintf(stderr, "         -d             treat as haploid assembly or diploid assembly, 1: haploid, >1: diploid [0]\n");
 				fprintf(stderr, "         -h             help\n");
 				return 1;	
 		}		
 	}
-
-	if (optind + 1 > argc) {
+	if (optind + 1 <= argc) 
 		opts.stat_fn = argv[optind];	
-	} 
+	 
+	 
 	//read 
 	if (~opts.dip_cov) {
 		if (~opts.upper_cov) {
@@ -435,7 +440,7 @@ help:
 	int cutoffs[5];
 	uint32_t *depth2cnt = read_counts(opts.stat_fn);	
 	//process 
-	if (!calcuts(depth2cnt, cutoffs, opts.min_mc, opts.min_frac)) 
+	if (!calcuts(depth2cnt, cutoffs, opts.min_mc, opts.min_frac, opts.fhord)) 
    		//output 
 		fprintf(stdout, "%d\t%d\t%d\t%d\t%d\t%d\n", LOWEST_CUT, cutoffs[0], cutoffs[1], cutoffs[2], cutoffs[3], cutoffs[4]);	
 	return 0;
