@@ -328,11 +328,11 @@ void print_coverage_wig(cov_ary_t *ca, sdict_t* ctgs, char *tp, uint32_t ws, cha
 				fprintf(fp, "fixedStep chrom=%s start=1 step=%d span=%d\n", ctgs->seq[i].name, ws, ws);
 				uint32_t z;
 				for (z = 0; z < tot_cov_cnt - 2; ++z) fprintf(fp, "%u\n", total_coverage[z]/ws);
-				uint32_t lastnbases = ca[i].intv[ca[i].n - 1].e - (tot_cov_cnt - 2) * ws;
+				uint32_t lastnbases = ctgs->seq[i].len - (tot_cov_cnt - 2) * ws;
 				fprintf(fp, "variableStep chrom=%s span=%d\n", ctgs->seq[i].name, lastnbases);
 				fprintf(fp, "%u %u\n", (tot_cov_cnt - 2) * ws + 1, (total_coverage[z] + total_coverage[z+1]) /lastnbases);
 			} else {
-				uint32_t lastnbases = ca[i].intv[ca[i].n - 1].e;
+				uint32_t lastnbases = ctgs->seq[i].len;
 				fprintf(fp, "variableStep chrom=%s span=%d\n", ctgs->seq[i].name, lastnbases);
 				fprintf(fp, "%u %u\n", 1, total_coverage[0] /lastnbases);
 			} 
