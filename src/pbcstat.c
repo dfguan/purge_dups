@@ -117,7 +117,7 @@ int aa_pb(char *paf_fn[], int n_paf, int min_cov, int max_cov, int min_mq, uint3
 int main(int argc, char *argv[])
 {
 	int c;
-	int max_cov = 100000000, min_cov = 10;
+	int max_cov = 500, min_cov = 10;
 	int min_mq = -1;
 	uint32_t flank = 0;	
 	float min_mlr = 0;
