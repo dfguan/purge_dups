@@ -293,18 +293,18 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 			if (locopts.a[i].idx_s < LOWEST_CUT) 
 				locopts.a[i].del = 1;
 		//remove deleted 
-		print_loopt(locopts.a, locopts.n);
+		/*print_loopt(locopts.a, locopts.n);*/
 		for ( i = 0, j = 0; j < locopts.n; ++j) {
 			if (!locopts.a[j].del)
 				locopts.a[i++] = locopts.a[j];	
 		}
 		locopts.n = i;
-		print_loopt(locopts.a, locopts.n);
 		if (locopts.n >= 3) {
 			qsort(locopts.a, locopts.n, sizeof(locopt_t), cmplocopt);	
 			//more than 3 merge 
 			//in case ne		
 			//check peak and valleys
+			print_loopt(locopts.a, 3);
 			peakn = 0;
 			int valley_idx = 0, ltval_idx = 0;
 			for ( i = 0; i < 3; ++i) {
@@ -325,19 +325,24 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 				cutoffs[2] = cutoffs[1] + 1; 
 				cutoffs[3] = 2 * locopts.a[2].idx_s - cutoffs[2];
 				cutoffs[4] = 3 * locopts.a[2].idx_s;	
-				goto end;
+				
+				free(derts1);
+				free(derts1_fit);
+				free(derts2);
+				kv_destroy(locopts);
+				return 0;
 			}
 		} else 
 			locopts.n = 2;	
 	} 
 	//check whether this is a haploid or diploid		
 	int isdip = 1; 
+	if (locopts.n) locopts.a[0].idx_s = locopts.a[0].idx_e = max_idx, locopts.a[0].cnt = max_cnt;	
+	else {
+			locopt_t tmp = (locopt_t){max_idx, 1, max_idx, 0, max_cnt};
+			kv_push(locopt_t, locopts, tmp);
+	} 
 	if (!fhord) {
-		if (locopts.n) locopts.a[0].idx_s = locopts.a[0].idx_e = max_idx, locopts.a[0].cnt = max_cnt;	
-		else {
-				locopt_t tmp = (locopt_t){max_idx, 1, max_idx, 0, max_cnt};
-				kv_push(locopt_t, locopts, tmp);
-		} 
 
 		int mean = get_mean(depth2cnt);
 		fprintf(stderr, "[M::%s] mean: %d\tmax_idx: %d\n", __func__, mean, max_idx);
@@ -364,7 +369,6 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 		cutoffs[3] = cutoffs[3] + i;//2.5 * opt
 		cutoffs[4] = 3 * cutoffs[2];
 	}
-end:
 	free(derts1);
 	free(derts1_fit);
 	free(derts2);
@@ -414,7 +418,7 @@ help:
 				fprintf(stderr, "         -m    INT      transition between haploid and diploid\n");	
 				fprintf(stderr, "         -u    INT      upper bound for read depth\n");	
 				/*fprintf(stderr, "         -c    INT      minimum spanning hump [7]\n");*/
-				fprintf(stderr, "         -d             treat as haploid assembly or diploid assembly, 1: haploid, >1: diploid [0]\n");
+				fprintf(stderr, "         -d             treat as haploid assembly or diploid assembly, 1: haploid, others: diploid [0]\n");
 				fprintf(stderr, "         -h             help\n");
 				return 1;	
 		}		
@@ -430,12 +434,12 @@ help:
 			return 0;	
 		} else {
 			fprintf(stderr, "[E::%s] please set high read depth cutoff\n", __func__);
-			return 1;
+			goto help;
 		}
 	}
 	if (!opts.stat_fn) {
 		fprintf(stderr, "[E::%s] require a stat file\n", __func__);
-		return 1;
+		goto help;
 	}
 	int cutoffs[5];
 	uint32_t *depth2cnt = read_counts(opts.stat_fn);	

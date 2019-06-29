@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #generate a config.*.json used for run_purge_dups.py, just work for our directory structure 
 import sys, os,json
+import argparse
 
 
 def fl_exist(s):
@@ -20,12 +21,13 @@ def alz_fn(d, fn):
     tech = fn_list[1]
     return [fl_path, enzyme, tech]
 
-def gen_config(r, d):
+def gen_config(r, d, fn):
     #write a new config file
     ref_fn = os.path.splitext(os.path.basename(r))[0] 
     busco_lineage = {'a': "tetrapoda", 'b': "aves", 'd': "embryophyta", 'e': "metazoa", 'f': "actinopterygii", 'i': "insecta", 'h': "eukaryota", 'm': "mammalia", 'q': "arthropoda", 's': "vertebrata", 'x':"metazoa"}
     used_lineage = busco_lineage[ref_fn[0]] if ref_fn[0] in busco_lineage else ""
-    out_fn = "config.{}.json".format(ref_fn)
+    # out_fn = "config.{}.json".format(ref_fn) 
+    out_fn = fn 
     f = open(out_fn, 'w')
     jd = {
             "cc":{"fofn":"", "isdip":1, "core":12,"mem":20000, "queue":"normal", "ispb":1, "skip":0},
@@ -49,6 +51,35 @@ def gen_config(r, d):
         jd["kcp"]["skip"] = 1
     json.dump(jd, f, indent = 2) 
     f.close()
+def worker(ref, ref_dir, pbfofn, txfofn, ldbdir, out_fn):
+    if not os.path.isfile(ref):
+        print ("file {} doesn't exist".format(ref))
+        return 1
+    if not os.path.isdir(ref_dir):
+        os.mkdir(ref_dir)
+    cp_cmd = "cp {0} {1}".format(ref, ref_dir)
+    rpath = "{0}/{1}".format(ref_dir, getfn(ref))
+    if ref[-3:] == ".gz":
+        cp_cmd = "zcat {0} > {1}/{2}".format(ref, ref_dir, getfn(ref)[:-3])
+        rpath = "{0}/{1}".format(ref_dir, getfn(ref)[:-3])
+    os.system(cp_cmd)
+    
+    if not os.path.isfile(pbfofn):
+        print ("file {} doesn't exist".format(pbfofn))
+        return 1
+    
+    if not os.path.isdir(ldbdir):
+        os.mkdir(ldbdir)
+    cp_cmd = "cp {0} {1}/pb.fofn".format(pbfofn, ldbdir)
+    os.system(cp_cmd)
+
+    if not os.path.isdir(ldbdir):
+        os.mkdir(ldbdir)
+    if txfofn:
+        cp_cmd = "cp {0} {1}/10x.fofn".format(txfofn, ldbdir)
+        os.system(cp_cmd)
+    gen_config(get_abspath(rpath), ldbdir, out_fn)  
+    return 0
 
 def proc_ref(ref, ref_dir, pbdbdir,txdbdir, ldbdir):
     #copy ref to refdir
@@ -87,13 +118,12 @@ def proc_ref(ref, ref_dir, pbdbdir,txdbdir, ldbdir):
     # d = './' + os.path.basename(r).split(".")[0] #directory
         gen_config(get_abspath(rpath), locd)  
 if __name__=="__main__":
-    if len(sys.argv) < 5:
-        print ("config.py <ref> <ref_dir> <pbdb_dir> <10xdb_dir> <local_dbdir>")
-        sys.exit(1)
-    else:
-        ref = sys.argv[1]
-        ref_dir=sys.argv[2]
-        pbdbdir = sys.argv[3]
-        txdbdir = sys.argv[4]
-        ldbdir = sys.argv[5]
-        proc_ref(ref, ref_dir, pbdbdir, txdbdir, ldbdir)
+    parser = argparse.ArgumentParser(description='generate a configuration file in json format')
+    parser.add_argument('-s', '--srfofn', type=str, action="store", dest = "srf", help ='list of short reads files (one record per line, the record is a tab splitted line of abosulte file path plus trimmed bases, refer to https://github.com/dfguan/KMC) [NONE]')
+    parser.add_argument('-l', '--localdir', type=str, action="store", dest = "locd", help ='local directory to keep the reference and lists of the pacbio, short reads files [.]', default=".")
+    parser.add_argument('-n', '--name', type=str, action="store", dest = "fn", help ='output config file name [config.json]', default = "config.json")
+    parser.add_argument('--version', action='version', version='%(prog)s 0.0.0')
+    parser.add_argument('ref', type=str, action="store", help = "reference file")
+    parser.add_argument('pbfofn', type=str, action="store", help = "list of pacbio file (one absolute file path per line)")
+    opts = parser.parse_args()
+    sys.exit(worker(opts.ref, opts.locd, opts.pbfofn,opts.srf, opts.locd, opts.fn))

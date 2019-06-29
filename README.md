@@ -32,25 +32,24 @@ You can follow the [Usage](#usg) part and use our pipeline to purge your assembl
 
 1. zlib
 2. minimap2 
-3. runner (optional if you build your own pipeline)
+3. runner (optional)
 4. python3 (optional)
 
 
 ## Installation
-Run the following commands to install runner (required):
+Run the following commands to intall purge_dups (required):
+
+```
+git clone https://github.com/dfguan/purge_dups.git
+cd purge_dups/src && make
+
+```
+Run the following commands to install runner (optional), this is only needed when you want to run scripts/run_purge_dups.py:
 
 ```
 git clone https://github.com/dfguan/runner.git
 cd runner && python3 setup.py install --user
 ```
-Run the following commands to intall purge_dups (required):
-
-```
-https://github.com/dfguan/purge_dups.git
-cd purge_dups/src && make
-
-```
-
 If you also want to try k-mer comparision plot, run the following commands to install the tool (optional). 
 
 ```
@@ -62,21 +61,32 @@ cd KMC && make -j 16
 ### Step 1. Use pd\_config.py to generate a configuration file. 
 
 ```
-pd_config.py <ref> <ref_dir> <pbdb_dir> <10xdb_dir> <local_dbdir> 
-   This will generate a configuration file named with config.ASSEMBLY_PREFIX.json
-   
-   <ref>         the location of assembly file, can be fasta or fasta.gz
-   <ref_dir>     the directory of copy of the assembly file, no need to exist
-   <pbdb_dir>    Pacbio data directory 
-   <10xdb_dir>   10x data directory
-   <local_dbdir> diretory to keep Pacbio and 10x file lists. 
+usage: pd_config.py [-h] [-s SRF] [-l LOCD] [-n FN] [--version] ref pbfofn
+
+generate a configuration file in json format
+
+positional arguments:
+  ref                   reference file in fasta/fasta.gz format
+  pbfofn                list of pacbio file in fastq/fasta/fastq.gz/fasta.gz format (one absolute file path per line)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -s SRF, --srfofn SRF  list of short reads files in fastq/fastq.gz format (one record per line, the
+                        record is a tab splitted line of abosulte file path
+                        plus trimmed bases, refer to
+                        https://github.com/dfguan/KMC) [NONE]
+  -l LOCD, --localdir LOCD
+                        local directory to keep the reference and lists of the
+                        pacbio, short reads files [.]
+  -n FN, --name FN      output config file name [config.json]
+  --version             show program's version number and exit
 
 ```
 
 Example:
 
 ```
-./scripts/pd_config.py ~/vgp/release/insects/iHelSar1/iHelSar1.PB.asm1/iHelSar1.PB.asm1.fa.gz refs ~/vgp/build/insects/iHelSar1/PacBio/ ~/vgp/build/insects/iHelSar1/10X/ iHelSar1
+./scripts/pd_config.py -l iHelSar1.pri -s 10x.fofn -n config.iHelSar1.PB.asm1.json ~/vgp/release/insects/iHelSar1/iHlSar1.PB.asm1/iHelSar1.PB.asm1.fa.gz pb.fofn
 ```
 
 ### Step 2. Modify the configuration file manually (optional). 
@@ -85,44 +95,46 @@ configuration file is in json format, it has all the information required by run
 
 ```
 {
-  "kcp": {   
-  	"core": 12,
-  	"skip": 0, 
-  	"prefix": "iHelSar1.PB.asm1_purged_kcm", 
-  	"fofn": "iHelSar1ls/10x.fofn", 
-  	"mem": 30000,
-  	"tmpdir": "kcp_tmp” 
-  	},
-  "gs": { "mem": 10000},
-  "out_dir": "iHelSar1.PB.asm1", 
-  "pd": { 
-  	"mem": 20000, 
-  	"queue": "normal”
-  	},
-  "cc": { 
-  	"core": 12, 
-  	"queue": "normal",  
-  	"isdip": 1, 
-  	"skip": 0, 
-  	"fofn": "iHelSar1ls/pb.fofn", 
-  	"mem": 20000, 
-  	"ispb": 1 
-  }, 
-  “sa”: { 
-  	“core”: 12, 
-  	“mem”: 10000, 
-  	“queue”: “normal”
-  	},
-  “busco”: { 
-  	“core”: 12, 
-  	“lineage”: “insecta”, 
-  	“prefix”: “iHelSar1.PB.asm1_purged”, 
-  	“queue”: “long”,  
-  	“skip”: 0, 
-  	“mem”: 20000,
-  	”tmpdir”: “busco_tmp”
-  	},
-  “ref”:”/lustre/scratch116/vr/projects/vgp/user/dg30/dg30/projects/vgp/purge_dups/190418.primary/purge_dups/refs/iHelSar1.PB.asm1.fa”
+  "cc": {
+    "fofn": "iHelSar1.pri/pb.fofn",
+    "isdip": 1,
+    "core": 12,
+    "mem": 20000,
+    "queue": "normal",
+    "ispb": 1,
+    "skip": 0
+  },
+  "sa": {
+    "core": 12,
+    "mem": 10000,
+    "queue": "normal"
+  },
+  "busco": {
+    "core": 12,
+    "mem": 20000,
+    "queue": "long",
+    "skip": 0,
+    "lineage": "insecta",
+    "prefix": "iHelSar1.PB.asm1_purged",
+    "tmpdir": "busco_tmp"
+  },
+  "pd": {
+    "mem": 20000,
+    "queue": "normal"
+  },
+  "gs": {
+    "mem": 10000
+  },
+  "kcp": {
+    "core": 12,
+    "mem": 30000,
+    "fofn": "iHelSar1.pri/10x.fofn",
+    "prefix": "iHelSar1.PB.asm1_purged_kcm",
+    "tmpdir": "kcp_tmp",
+    "skip": 0
+  },
+  "ref": "/lustre/scratch116/vr/projects/vgp/user/dg30/dg30/projects/vgp/purge_dups/190508.primary/purge_dups/iHelSar1.pri/iHelSar1.PB.asm1.fa",
+  "out_dir": "iHelSar1.PB.asm1"
 }
 ```
 
@@ -136,8 +148,8 @@ This file use several key words to define resource allocation, input files or ou
 - **tmpdir**: Temporary directory
 - **lineage**: Busco database 
 - **queue**: job queue
-- **ref**: assembly file path
-- **out_dir**: working directory
+- **ref**: Assembly file path
+- **out_dir**: Working directory
 - **ispb**: Bool value set for pacbio data, 0 for Illumina data
 
 **Notice**: **isdip** is deprecated. 
@@ -184,12 +196,13 @@ After the pipeline is finished, there will be four new directories in the workin
 - **split_aln**: segmented assembly file and a self-alignment paf file. 
 - **purge_dups**: duplicate sequence list. 
 - **seqs**: purged primary contigs ending with .purge.fa and haplotigs ending with .red.fa, also K-mer comparison plot and busco results are also in this directory.  
+
 ### Other Modification
 
 If the busco and k-mer comparison plot scripts are working, please modify them with the following instructions. 
 
-- run\_busco: set the PATH variables in run_busco to your own path. 
-- run\_kcm: set kcm_dir to your own KMC directory.
+- run\_busco: set the PATH variables in run_busco script to your own related path. 
+- run\_kcm: set kcm\_dir variable in run\_kcm script to your own KMC directory path.
 
 ## <a name="pplg"> </a> Pipeline Guide
 The following steps show you how to build your own purge_dups pipeline, steps with same number mean they can be run simultaneously.  
@@ -225,7 +238,11 @@ bin/purge_dups -2 -T cutoffs -c PB.base.cov $asm.split.self.paf > dups.bed 2> pu
 bin/get_seqs dups.bed $asm > purged.fa 2> hap.fa 
 ``` 
 
+## Limitation
+
+- Read depth cutoffs calculation: the coverage cutoffs can be larger for a low heterozygosity species, which causes the purged assembly size smaller than expected. In such a case, please use script/hist_plot.py to make the histogram plot and set coverage cutoffs manually. 
+- Repeats: purge_dups has a limited ability to process repeats. 
+
 ## Contact
 
 Wellcome to use, you can use github webpage to report an issue or email me dfguan9@gmail.com with any advice. 
-
