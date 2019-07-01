@@ -205,16 +205,16 @@ If the busco and k-mer comparison plot scripts are working, please modify them w
 - run\_kcm: set kcm\_dir variable in run\_kcm script to your own KMC directory path.
 
 ## <a name="pplg"> </a> Pipeline Guide
-The following steps show you how to build your own purge_dups pipeline, steps with same number mean they can be run simultaneously.  
+Given a primary assembly *pri_asm*, follow the steps shown below to build your own purge_dups pipeline, steps with same number can be run simultaneously. Among all the steps, although step 4 is optional, we highly recommend our users to do so, because assemblers may produce overrepresented seqeuences. In such a case, The final step 4 can be applied to remove those seqeuences.
 
 ### Step 1. Run minimap2 to align pacbio data and generate paf files, then calculate read depth histogram and base-level read depth. Commands are as follows:
 
 ```
 for i in $pb_list
 do
-	minimap2 -xmap-pb $asm $i > $i.paf 
+	minimap2 -xmap-pb $pri_asm $i | gzip -c - > $i.paf.gz
 done
-bin/pbcstat *.paf (produces PB.base.cov and PB.stat files)
+bin/pbcstat *.paf.gz (produces PB.base.cov and PB.stat files)
 bin/calcuts PB.stat > cutoffs 2>calcults.log
 ```
 **Notice** If you have a large genome, please set minimap2 ``-I`` option to ensure the genome can be indexed once, otherwise read depth can be wrong. 
@@ -222,21 +222,24 @@ bin/calcuts PB.stat > cutoffs 2>calcults.log
 ### Step 1. Split an assembly and do a self-self alignment. Commands are following: 
 
 ```
-bin/split_fa $asm > $asm.split
-minimap2 -xasm5 -DP $asm.split $asm.split > $asm.split.self.paf
+bin/split_fa $pri_asm > $pri_asm.split
+minimap2 -xasm5 -DP $pri_asm.split $pri_asm.split | gzip -c - > $pri_asm.split.self.paf.gz
 ```
 
 ### Step 2. Purge haplotigs and overlaps with the following command. 
 
 ```
-bin/purge_dups -2 -T cutoffs -c PB.base.cov $asm.split.self.paf > dups.bed 2> purge_dups.log
+bin/purge_dups -2 -T cutoffs -c PB.base.cov $pri_asm.split.self.paf.gz > dups.bed 2> purge_dups.log
 ```
 
-### Step 3. Get primary and haplotig sequences from draft assembly. 
+### Step 3. Get purged primary and haplotig sequences from draft assembly. 
 
 ```
-bin/get_seqs dups.bed $asm > purged.fa 2> hap.fa 
+bin/get_seqs dups.bed $pri_asm > purged.fa 2> hap.fa 
 ``` 
+
+### Step 4. Merge hap.fa and $hap_asm and purge the merged haplotigs with the above steps to get a decent haplotig set. 
+
 
 ## Limitation
 
