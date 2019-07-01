@@ -256,9 +256,9 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 			locopt_t tmp = (locopt_t){i, isp, i, 0, depth2cnt[i]};
 			kv_push(locopt_t, locopts, tmp);
 		}
-	fprintf(stderr, "Find_Peaks: %d\n", peakn);		
-	print_loopt(locopts.a, locopts.n);	
-	fprintf(stderr, "After Processing\n");
+	/*fprintf(stderr, "Find_Peaks: %d\n", peakn);		*/
+	/*print_loopt(locopts.a, locopts.n);	*/
+	/*fprintf(stderr, "After Processing\n");*/
 	//sort and output	
 	if (locopts.n >= 3) {
 		/*int mean = get_mean(depth2cnt);*/
@@ -304,7 +304,7 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 			//more than 3 merge 
 			//in case ne		
 			//check peak and valleys
-			print_loopt(locopts.a, 3);
+			/*print_loopt(locopts.a, 3);*/
 			peakn = 0;
 			int valley_idx = 0, ltval_idx = 0;
 			for ( i = 0; i < 3; ++i) {
@@ -345,7 +345,7 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 	if (!fhord) {
 
 		int mean = get_mean(depth2cnt);
-		fprintf(stderr, "[M::%s] mean: %d\tmax_idx: %d\n", __func__, mean, max_idx);
+		/*fprintf(stderr, "[M::%s] mean: %d\tmax_idx: %d\n", __func__, mean, max_idx);*/
 		//hump is on right side is hapliod covrage
 		if (mean <= max_idx) isdip = 0;
 	} else if (fhord == 1) 

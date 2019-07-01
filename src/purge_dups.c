@@ -1424,7 +1424,7 @@ int main(int argc, char *argv[])
 	
 	flt_hits_by_ml(rhts->rht, rhts->n, opts.min_dup_bl); //replace by parameter
 	rhts->n = cleanup_hits(rhts->rht, rhts->n, sn);
-	print_hits(rhts->rht, 0, rhts->n, sn, "merged");
+	/*print_hits(rhts->rht, 0, rhts->n, sn, "merged");*/
 	update_cords(rhts->rht, rhts->n, opts.max_ext); // same as above
 	
 	if (ca) {
@@ -1439,11 +1439,11 @@ int main(int argc, char *argv[])
 	double_hits(rhts);
 	//this part purge haplotigs again
 	qsort(rhts->rht, rhts->n, sizeof(eg_hit_t), cmp_q);	
-	print_hits(rhts->rht, 0, rhts->n, sn, "bef");
+	/*print_hits(rhts->rht, 0, rhts->n, sn, "bef");*/
 	flt_hits4(rhts->rht, rhts->n, sn);
 	rhts->n = cleanup_hits(rhts->rht, rhts->n, sn);
 	qsort(rhts->rht, rhts->n, sizeof(eg_hit_t), cmp_qtgse);	
-	print_hits(rhts->rht, 0, rhts->n, sn, "aft");
+	/*print_hits(rhts->rht, 0, rhts->n, sn, "aft");*/
 	
 	//this part create undirected graph
 	purge_dups2(rhts->rht, rhts->n, sn, &dups); //second round to purge continous query 
