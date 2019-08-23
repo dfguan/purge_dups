@@ -177,7 +177,7 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -p PLTFM, --platform PLTFM
-                        workload management platform
+                        workload management platform, input bash if you want to run locally
   -w WAIT, --wait WAIT  <int> seconds sleep intervals
   -r RETRIES, --retries RETRIES
                         maximum number of retries
@@ -205,7 +205,7 @@ If the busco and k-mer comparison plot scripts are working, please modify them w
 - run\_kcm: set kcm\_dir variable in run\_kcm script to your own KMC directory path.
 
 ## <a name="pplg"> </a> Pipeline Guide
-Given a primary assembly *pri_asm*, follow the steps shown below to build your own purge_dups pipeline, steps with same number can be run simultaneously. Among all the steps, although step 4 is optional, we highly recommend our users to do so, because assemblers may produce overrepresented seqeuences. In such a case, The final step 4 can be applied to remove those seqeuences.
+Given a primary assembly *pri_asm* and an alternative assembly *hap_asm* (optional, if you have one), follow the steps shown below to build your own purge_dups pipeline, steps with same number can be run simultaneously. Among all the steps, although step 4 is optional, we highly recommend our users to do so, because assemblers may produce overrepresented seqeuences. In such a case, The final step 4 can be applied to remove those seqeuences.
 
 ### Step 1. Run minimap2 to align pacbio data and generate paf files, then calculate read depth histogram and base-level read depth. Commands are as follows:
 
@@ -238,7 +238,7 @@ bin/purge_dups -2 -T cutoffs -c PB.base.cov $pri_asm.split.self.paf.gz > dups.be
 bin/get_seqs dups.bed $pri_asm > purged.fa 2> hap.fa 
 ``` 
 
-### Step 4. Merge hap.fa and $hap_asm and purge the merged haplotigs with the above steps to get a decent haplotig set. 
+### Step 4. Merge hap.fa and $hap_asm and redo the above steps to get a decent haplotig set. 
 
 
 ## Limitation

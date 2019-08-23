@@ -297,7 +297,7 @@ def cont(config_fn, bin_dir, spid, pltfm, _wait, _retries):
 if __name__ == "__main__":
 # this part should be implemented in superclass ? don't know how to do it.  
     parser = argparse.ArgumentParser(description='purge_dups wrapper')
-    parser.add_argument('-p', '--platform', type=str, action="store", dest = "pltfm", help ='workload management platform', default='lsf')
+    parser.add_argument('-p', '--platform', type=str, action="store", dest = "pltfm", help ='workload management platform, input bash if you want to run locally', default='lsf')
     parser.add_argument('-w', '--wait', type=int, action = "store", dest = "wait", help = '<int> seconds sleep intervals', default = 10)
     parser.add_argument('-r', '--retries', type = int, action = "store", dest = "retries", help = 'maximum number of retries', default= 2)
     parser.add_argument('--version', action='version', version='v 0.0.3')
