@@ -77,7 +77,6 @@ int chl_col_ctgs(char *bam_fn, sdict_t *ctgs)
 		fprintf(stderr, "[E::%s] fail to open %s\n", __func__, bam_fn);
 		return -1;
 	}
-	
 	h = bam_header_read(fp);
 	b = bam_init1();
 	
@@ -198,7 +197,7 @@ int ngscstat(char *bam_fn[], int n_bam, int min_mq, uint32_t max_is, int max_cov
 #endif
 	sdict_t *ctgs = sd_init();
 	chl_col_ctgs(bam_fn[0], ctgs);
-	if (ctgs->n_seq) {
+	if (!ctgs->n_seq) {
 		fprintf(stderr, "[M::%s] No contigs found in bam file, quit\n", __func__);
 		return 0;
 	}
