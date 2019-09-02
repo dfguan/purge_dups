@@ -105,7 +105,7 @@ int proc_bam(char *bam_fn, int min_mq, uint32_t max_is, sdict_t *ctgs, int opt, 
 		fprintf(stderr, "[E::%s] fail to open %s\n", __func__, bam_fn);
 		return -1;
 	}
-	
+	h = bam_header_read(fp);	
 	b = bam_init1();
 
 	char *cur_qn = NULL;
