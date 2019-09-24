@@ -30,7 +30,7 @@ int help()
 	fprintf(stderr, "         -c    STR      base-level coverage file [NULL]\n");
 	fprintf(stderr, "         -T    STR      cutoffs file [NULL]\n");
 	fprintf(stderr, "         -f    INT      minimum fraction of haploid/diploid/bad/repetitive bases in a sequence [.8]\n")	;
-	fprintf(stderr, "         -a    INT      minimum alignment score [50]\n");
+	fprintf(stderr, "         -a    INT      minimum alignment score [70]\n");
 	fprintf(stderr, "         -b    INT      minimum max match score [200]\n");
 	fprintf(stderr, "         -2    BOOL     2 rounds chaining [FALSE]\n")	;
 	fprintf(stderr, "         -m    INT      minimum matching bases for chaining [500]\n");
