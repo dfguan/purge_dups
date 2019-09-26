@@ -240,11 +240,32 @@ bin/get_seqs dups.bed $pri_asm > purged.fa 2> hap.fa
 
 ### Step 4. Merge hap.fa and $hap_asm and redo the above steps to get a decent haplotig set. 
 
-
 ## Limitation
 
 - Read depth cutoffs calculation: the coverage cutoffs can be larger for a low heterozygosity species, which causes the purged assembly size smaller than expected. In such a case, please use script/hist_plot.py to make the histogram plot and set coverage cutoffs manually. 
 - Repeats: purge_dups has a limited ability to process repeats. 
+
+## FAQ
+**Q:** Can purge_dups work with Illumina short reads? 
+
+**A:** Yes, purge_dups does have a program to process Illumina reads, it's called **ngscstat** under the bin directory. But I have not got time to test it. If you want to play with it, please follow this workflow:
+
+```
+bwa mem $pri_asm $sr_1.fq $sr_2.fq | samtools view -b -o - > $sr.bam 
+ngscstat $sr.bam... # The program will generate two/three outputs, TX.stat and TX.base.cov which functions the same way as PB.stat and PB.base.cov respectively.  
+``` 
+
+After you get the TX.stat and TX.base.cov file, you can following the normal purge_dups routine to clean your assembly. 
+
+**Q:** Can I validate the cutoffs set by purge\_dups? 
+
+**A:** Yes, we also recommend this step. A script "hist_plot.py" under the scripts directory is available, you can also use it to manually select the cutoffs. 
+
+**Q:** How can I validate the purged assembly? Is it clean enough or overpurged? 
+
+**A:** There are many ways to validate the purged assembly. One way is to make a coverage plot for it which can also be hist_plot.py, the 2nd way is to run BUSCO and another way is to make a KAT plot with KAT (https://github.com/TGAC/KAT) or KMC (https://github.com/dfguan/KMC, use this if you only have a small memory machine) if short reads or some accurate reads are available. 
+
+
 
 ## Contact
 

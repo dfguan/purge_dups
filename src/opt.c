@@ -36,7 +36,7 @@ int help()
 	fprintf(stderr, "         -m    INT      minimum matching bases for chaining [500]\n");
 	fprintf(stderr, "         -M    INT      maximum gap size for chaining [20K]\n")	;
 	fprintf(stderr, "         -G    INT      maximum gap size for 2nd round chaining [50K]\n");
-	fprintf(stderr, "         -l    INT      minimum alignment block for an overlap [10K]\n")	;
+	fprintf(stderr, "         -l    INT      minimum chaining score for a match [10K]\n")	;
 	fprintf(stderr, "         -E    INT      maximum extension for contig ends [15K]\n")	;
 	/*fprintf(stderr, "         -r    BOOL     read to reference alignment [FALSE]\n")	;*/
 	fprintf(stderr, "         -h             help\n")	;
