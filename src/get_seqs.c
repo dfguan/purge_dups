@@ -118,18 +118,18 @@ int col_dups(char *fn, sdict_t *sn, dup_v *dups)
 	return 0;
 }
 
-int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml)
+int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml, FILE *hp, FILE* pp)
 {
 	size_t i;
 	if (n <= 2) {
-		fprintf(stdout, ">%s\n%s\n", name, s);	
+		fprintf(pp, ">%s\n%s\n", name, s);	
 		return 0;			
 	}
 	dp[n-1].s = dp[n-1].e = l + 1;
 	/*print_dups2(dp, n, name);*/
 	/*char *seq = malloc(sizeof(char) * (l + 1 + (n-2) * 200));*/
-	char *seq = malloc(sizeof(char) * (l + 1));
-	char *hapseq = malloc(sizeof(char) * (l + 1));
+	char *seq = malloc(sizeof(char) * (l + 1 + (n-2) * 200));
+	char *hapseq = malloc(sizeof(char) * (l + 1 + (n-2) * 200));
 	uint32_t poi = 0;
 	for ( i = 0; i < n - 1; ++i) {
 		uint32_t st, ed;
@@ -137,10 +137,10 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 		ed = dp[i+1].s;
 		memcpy(seq + poi, s + st, ed - st - 1);		
 		poi += (ed - st - 1);
-		/*if (i != n - 2)	{*/
-			/*memset(seq + poi, 'N', 200); 	*/
-			/*poi += 200;*/
-		/*}*/
+		if (i != n - 2)	{
+			memset(seq + poi, 'N', 23); 	
+			poi += 23;
+		}
 		seq[poi] = 0;
 	}
 	uint32_t happoi = 0;
@@ -150,20 +150,24 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 		ed = dp[i].e;
 		memcpy(hapseq + happoi, s + st - 1, ed - st + 1);	
 		happoi += (ed - st + 1);
+		if (i != n - 2)	{
+			memset(hapseq + happoi, 'N', 23); 	
+			happoi += 23;
+		}
 		hapseq[happoi] = 0;
 	}	
 	if (poi > ml) {
-		fprintf(stdout, ">%s\n%s\n", name, seq);
-		fprintf(stderr, ">%s\n%s\n", name, hapseq);
+		fprintf(pp, ">%s\n%s\n", name, seq);
+		fprintf(pp, ">%s\n%s\n", name, hapseq);
 	} else 
-		fprintf(stderr, ">%s\n%s\n", name, s);
+		fprintf(hp, ">%s\n%s\n", name, s);
 	free(seq);
 	free(hapseq);
 	return 0;
 }
 
 
-int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml)
+int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml, char *outpref)
 {
 	gzFile fp;
 	kseq_t *seq;
@@ -172,20 +176,31 @@ int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml)
 	seq = kseq_init(fp);
 	uint32_t sid;
 	dup_t *dp = dups.a;
+	char *hap_fn = malloc(sizeof(char) * (outpref?strlen(outpref) + 16 : 16)); //hap.fa
+	char *pur_fn = malloc(sizeof(char) * (outpref? strlen(outpref) + 16: 16)); //purged.fa	
+	sprintf(hap_fn, "%s%s", outpref, outpref?".hap.fa":"hap.fa");	
+	sprintf(pur_fn, "%s%s", outpref, outpref?".purged.fa":"purged.fa");
+	
+	FILE *hap_fp = fopen(hap_fn, "w");
+	FILE *purged_fp = fopen(pur_fn, "w");
 	while (kseq_read(seq) >= 0) {
 		if (~(sid = sd_get(sn, seq->name.s))) {
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml);
+			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml, hap_fp, purged_fp);
 		} else 
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml);
+			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml, hap_fp, purged_fp);
 	} 
  	//add some basic statistics maybe 		
 	kseq_destroy(seq);
 	gzclose(fp);
+	free(hap_fn); free(pur_fn);
+	fclose(hap_fp);
+	fclose(purged_fp);
 	return 0;
 }
 typedef struct {
 	char *dup_fn;
 	char *fafn;
+	char *pref;
 	uint32_t ml;
 } opt_t;
 
@@ -195,11 +210,15 @@ int main(int argc, char *argv[])
 	opt_t opts;
 	int c;
 	char *r;
-	opts.ml = 10000;
+	opts.ml = 1000;
+	opts.pref = 0;
 	char *program;
    	(program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-	while (~(c=getopt(argc, argv, "l:h"))) {
+	while (~(c=getopt(argc, argv, "p:l:h"))) {
 		switch (c) {
+			case 'p': 
+				opts.pref = optarg;
+				break;
 			case 'l': 
 				opts.ml = strtol(optarg, &r, 10);
 				break;
@@ -208,14 +227,15 @@ int main(int argc, char *argv[])
 help:	
 				fprintf(stderr, "\nUsage: %s  [<options>] <DUPs.BED> <FASTA> \n", program);
 				fprintf(stderr, "Options:\n");
-				fprintf(stderr, "         -l    INT      minimum sequence length [10,000]\n");	
+				fprintf(stderr, "         -p    STR      prefix of output files [NULL]\n");	
+				fprintf(stderr, "         -l    INT      minimum primary contig length [1000]\n");	
 				fprintf(stderr, "         -h             help\n");
 				return 1;	
 		}		
 	}
 
 	if (optind + 2 > argc) {
-		fprintf(stderr,"[E::%s] require duplication list and fasta file!\n", __func__); goto help;
+		fprintf(stderr,"[E::%s] require a duplication list and fasta file!\n", __func__); goto help;
 	}
 	opts.dup_fn = argv[optind++];
 	opts.fafn = argv[optind];
@@ -225,7 +245,7 @@ help:
 	/*print_dups(&dups, sn);*/
 	uint64_t *idx = malloc(sizeof(uint64_t) * sn->n_seq);
 	dup_idx(dups, idx);
-	get_seqs(opts.fafn, dups, idx, sn, opts.ml);
+	get_seqs(opts.fafn, dups, idx, sn, opts.ml, opts.pref);
 	free(idx);
 	return 0;		
 }
