@@ -73,8 +73,9 @@ def purge_dups(man, pltfm, paf_fn, base_cov_fn, cutoff_fn, core_lim, mem_lim, qu
 def get_seqs(man, pltfm, ref, dups_fn, core_lim, mem_lim, out_dir, bin_dir, spid):
     mkdir(out_dir) 
     out_fn = "{0}/{1}.purged.fa".format(out_dir, get_lm_prefix(ref)) 
-    out_red_fn = "{0}/{1}.red.fa".format(out_dir, get_lm_prefix(ref)) 
-    jcmd = "{0}/get_seqs {1} {2} >{3} 2>{4}".format(bin_dir, dups_fn, ref, out_fn, out_red_fn)
+    out_red_fn = "{0}/{1}.red.fa".format(out_dir, get_lm_prefix(ref))
+    out_prefx="{0}/{1}".format(out_dir, get_lm_prefix(ref))
+    jcmd = "{0}/get_seqs -p {5} {1} {2}".format(bin_dir, dups_fn, ref, out_fn, out_red_fn, out_prefx)
     jjn = "get_seqs_{}".format(spid)
     jout = "{0}/{1}_%J.o".format(out_dir, jjn)
     jerr = "{0}/{1}_%J.e".format(out_dir, jjn)

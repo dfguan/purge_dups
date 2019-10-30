@@ -158,7 +158,7 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 	}	
 	if (poi > ml) {
 		fprintf(pp, ">%s\n%s\n", name, seq);
-		fprintf(pp, ">%s\n%s\n", name, hapseq);
+		fprintf(hp, ">%s\n%s\n", name, hapseq);
 	} else 
 		fprintf(hp, ">%s\n%s\n", name, s);
 	free(seq);
