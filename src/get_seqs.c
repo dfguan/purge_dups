@@ -118,7 +118,7 @@ int col_dups(char *fn, sdict_t *sn, dup_v *dups)
 	return 0;
 }
 
-int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml, FILE *hp, FILE* pp)
+int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml, FILE *hp, FILE* pp, int ahp)
 {
 	size_t i;
 	if (n <= 2) {
@@ -158,16 +158,23 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 	}	
 	if (poi > ml) {
 		fprintf(pp, ">%s\n%s\n", name, seq);
-		fprintf(hp, ">%s\n%s\n", name, hapseq);
-	} else 
-		fprintf(hp, ">%s\n%s\n", name, s);
+		if (ahp)
+			fprintf(hp, ">hap_%s\n%s\n", name, hapseq);
+		else 
+			fprintf(hp, ">%s\n%s\n", name, hapseq);
+	} else {
+		if (ahp) 	
+			fprintf(hp, ">hap_%s\n%s\n", name, s);
+		else
+			fprintf(hp, ">%s\n%s\n", name, hapseq);
+	}
 	free(seq);
 	free(hapseq);
 	return 0;
 }
 
 
-int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml, char *outpref)
+int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml, char *outpref, int ahp)
 {
 	gzFile fp;
 	kseq_t *seq;
@@ -185,9 +192,9 @@ int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml, ch
 	FILE *purged_fp = fopen(pur_fn, "w");
 	while (kseq_read(seq) >= 0) {
 		if (~(sid = sd_get(sn, seq->name.s))) {
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml, hap_fp, purged_fp);
+			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml, hap_fp, purged_fp, ahp);
 		} else 
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml, hap_fp, purged_fp);
+			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml, hap_fp, purged_fp, ahp);
 	} 
  	//add some basic statistics maybe 		
 	kseq_destroy(seq);
@@ -202,6 +209,7 @@ typedef struct {
 	char *fafn;
 	char *pref;
 	uint32_t ml;
+	int 	add_hap_pref;
 } opt_t;
 
 //this bed file is sorted by name
@@ -212,9 +220,10 @@ int main(int argc, char *argv[])
 	char *r;
 	opts.ml = 1000;
 	opts.pref = 0;
+	opts.add_hap_pref = 1;
 	char *program;
    	(program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-	while (~(c=getopt(argc, argv, "p:l:h"))) {
+	while (~(c=getopt(argc, argv, "ap:l:h"))) {
 		switch (c) {
 			case 'p': 
 				opts.pref = optarg;
@@ -222,12 +231,16 @@ int main(int argc, char *argv[])
 			case 'l': 
 				opts.ml = strtol(optarg, &r, 10);
 				break;
+			case 'a': 
+				opts.add_hap_pref = 0;
+				break;
 			default:
 				if (c != 'h') fprintf(stderr, "[E::%s] undefined option %c\n", __func__, c);
 help:	
 				fprintf(stderr, "\nUsage: %s  [<options>] <DUPs.BED> <FASTA> \n", program);
 				fprintf(stderr, "Options:\n");
 				fprintf(stderr, "         -p    STR      prefix of output files [NULL]\n");	
+				fprintf(stderr, "         -a    BOOL     do not add prefix to haplotigs [FALSE]\n");	
 				fprintf(stderr, "         -l    INT      minimum primary contig length [1000]\n");	
 				fprintf(stderr, "         -h             help\n");
 				return 1;	
@@ -245,7 +258,7 @@ help:
 	/*print_dups(&dups, sn);*/
 	uint64_t *idx = malloc(sizeof(uint64_t) * sn->n_seq);
 	dup_idx(dups, idx);
-	get_seqs(opts.fafn, dups, idx, sn, opts.ml, opts.pref);
+	get_seqs(opts.fafn, dups, idx, sn, opts.ml, opts.pref, opts.add_hap_pref);
 	free(idx);
 	return 0;		
 }
