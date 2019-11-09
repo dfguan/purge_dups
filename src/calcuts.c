@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <math.h>
 #include <zlib.h>
 #include <getopt.h>
 
@@ -45,11 +44,6 @@ typedef struct {
 	int idx_s:31, ispeak:1, idx_e: 31, del:1;
 	uint32_t cnt;	
 } locopt_t;
-float norm_cdf(int x, float p, int n) {
-    float mean = n * p;
-    float sd = sqrt(n * p * (1 - p));
-    return 0.5 * (1 + erf((x - mean)/(sd * sqrt(2))));
-}
 //read depth counts from a bedlike file produced by pbcstat (DG).   
 uint32_t *read_counts(const char *fn)
 {
@@ -262,13 +256,11 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 			locopt_t tmp = (locopt_t){i, isp, i, 0, depth2cnt[i]};
 			kv_push(locopt_t, locopts, tmp);
 		}
-	fprintf(stderr, "[M::%s] Find %d peaks\n", __func__, peakn);
 	/*fprintf(stderr, "Find_Peaks: %d\n", peakn);		*/
 	/*print_loopt(locopts.a, locopts.n);	*/
 	/*fprintf(stderr, "After Processing\n");*/
 	//sort and output	
 	if (locopts.n >= 3) {
-		peakn = 0;
 		/*int mean = get_mean(depth2cnt);*/
 		/*fprintf(stderr, "%d\n", mean);*/
 		//merge near values	
@@ -292,18 +284,14 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 					if (derts1_fit[is] < 0) 
 						locopts.a[i].ispeak = 0;
 					else
-						++peakn, locopts.a[i].ispeak = 1;
+						locopts.a[i].ispeak = 1;
 				} else 
 					locopts.a[i].del = 1; // is local peaks  
 		}
-		fprintf(stderr, "[M::%s] Merge local peaks and valleys: %d peaks\n", __func__, peakn);
 		//would not like any peak/valleys less than LOWEST_CUT
 		for ( i = 0; i < locopts.n; ++i) 
-			if (locopts.a[i].idx_s < LOWEST_CUT) {
-				if (locopts.a[i].ispeak) --peakn;	
+			if (locopts.a[i].idx_s < LOWEST_CUT) 
 				locopts.a[i].del = 1;
-			}
-		fprintf(stderr, "[M::%s] Remove peaks and valleys less than %d: %d peaks\n", __func__, LOWEST_CUT, peakn);
 		//remove deleted 
 		/*print_loopt(locopts.a, locopts.n);*/
 		for ( i = 0, j = 0; j < locopts.n; ++j) {
@@ -313,7 +301,6 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 		locopts.n = i;
 		if (locopts.n >= 3) {
 			qsort(locopts.a, locopts.n, sizeof(locopt_t), cmplocopt);	
-			
 			//more than 3 merge 
 			//in case ne		
 			//check peak and valleys
@@ -328,9 +315,8 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 			for ( i = 0; i <3; ++i) {
 				if (locopts.a[i].idx_s > valley_idx) ++ltval_idx; 
 			}
-			fprintf(stderr, "[M::%s] Use top 3 frequent read depth\n", __func__);
+
 			if (peakn == 2 && ltval_idx == 1) {
-				fprintf(stderr, "[M::%s] Found a valley in the middle of the peaks, use two-peak mode\n", __func__);
 				if (locopts.a[0].idx_s > locopts.a[1].idx_s) swap(int, locopts.a[0].idx_s, locopts.a[1].idx_s);
 				if (locopts.a[1].idx_s > locopts.a[2].idx_s) swap(int, locopts.a[1].idx_s, locopts.a[2].idx_s);
 				if (locopts.a[0].idx_s > locopts.a[1].idx_s) swap(int, locopts.a[0].idx_s, locopts.a[1].idx_s);
@@ -346,13 +332,10 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 				kv_destroy(locopts);
 				return 0;
 			}
-		} else {
-			fprintf(stderr, "[M::%s] The valley is not in proper position, use one-peak mode\n", __func__);
+		} else 
 			locopts.n = 2;	
-		} 
 	} 
 	//check whether this is a haploid or diploid		
-					
 	int isdip = 1; 
 	if (locopts.n) locopts.a[0].idx_s = locopts.a[0].idx_e = max_idx, locopts.a[0].cnt = max_cnt;	
 	else {
@@ -360,9 +343,9 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 			kv_push(locopt_t, locopts, tmp);
 	} 
 	if (!fhord) {
+
 		int mean = get_mean(depth2cnt);
-		fprintf(stderr, "[M::%s] mean: %d\tpeak: %d\n, mean %s than peak, treat as %s\n assembly", __func__, mean, max_idx, mean <= max_idx ? "not larger" : "larger", mean <= max_idx ? "haploid":"diploid");
-		if (norm_cdf(mean<=max_idx? max_idx : mean, 0.5, mean + max_idx) <=0.95) fprintf(stderr, "[W::%s] mean is not significantly different with peak, please check the cutoffs\n", __func__);
+		/*fprintf(stderr, "[M::%s] mean: %d\tmax_idx: %d\n", __func__, mean, max_idx);*/
 		//hump is on right side is hapliod covrage
 		if (mean <= max_idx) isdip = 0;
 	} else if (fhord == 1) 
@@ -447,7 +430,6 @@ help:
 	//read 
 	if (~opts.dip_cov) {
 		if (~opts.upper_cov) {
-			fprintf(stderr, "Set up cutoffs manually\n");	
 			fprintf(stdout, "%d\t%d\t%d\t%d\t%d\t%d\n", ~opts.low_cov ? opts.low_cov : LOWEST_CUT, opts.dip_cov - 1, opts.dip_cov - 1, opts.dip_cov, opts.dip_cov, opts.upper_cov);	
 			return 0;	
 		} else {
@@ -456,7 +438,7 @@ help:
 		}
 	}
 	if (!opts.stat_fn) {
-		fprintf(stderr, "[E::%s] require a read depth statistics file\n", __func__);
+		fprintf(stderr, "[E::%s] require a stat file\n", __func__);
 		goto help;
 	}
 	int cutoffs[5];
