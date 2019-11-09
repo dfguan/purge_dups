@@ -52,8 +52,8 @@ typedef struct {
 #define hit_key(a) ((a).qns)
 KRADIX_SORT_INIT(hit, eg_hit_t, hit_key, 8)
 
-	enum dup_type {JUNK, HAPLOTIG, PRIMARY, REPEAT, OVLP, UNKNOWN};
-char *dup_type_s[] = {"JUNK", "HAPLOTIG", "PRIMARY", "REPEAT", "OVLP", "UNKNOWN"};
+enum dup_type {JUNK, HIGH, HAPLOTIG, PRIMARY, REPEAT, OVLP, UNKNOWN, UNDEF};
+char *dup_type_s[] = {"JUNK", "HIGHCOV", "HAPLOTIG", "PRIMARY", "REPEAT", "OVLP", "UNKNOWN"};
 typedef struct {
 	uint32_t sn:28, tp:3, del:1; //don't think there will be 2G contigs
 	uint32_t s, e;
@@ -491,7 +491,7 @@ int flt_by_bm_mm(eg_hit_t *rht, uint64_t *idx, size_t n_idx, sdict_t *sn, dup_v 
 	while (1) {
 		for (j = 0; j < n_idx; ++j) {
 			//use type to indicate the candidates 
-			if (!sn->seq[j].del && !sn->seq[j].del2 && sn->seq[j].type == 7 && sn->seq[j].aux != PRIMARY)  {
+			if (!sn->seq[j].del && !sn->seq[j].del2 && sn->seq[j].type == UNDEF && sn->seq[j].aux != PRIMARY)  {
 				get_bm_mm_core(rht , idx[j] >> 32, (idx[j] >> 32) + (uint32_t)idx[j], sn, &sid, &bm, &mm); 
 				if (bm >= min_bm) {
 					if (mm >= min_mm) {
@@ -519,12 +519,12 @@ int flt_by_bm_mm(eg_hit_t *rht, uint64_t *idx, size_t n_idx, sdict_t *sn, dup_v 
 			/*fprintf(stderr, "seq_idx: %d\n", seq_idx);*/
 			if (!sn->seq[seq_idx].del && sn->seq[seq_idx].aux != PRIMARY && !sn->seq[seq_idx].del2) {
 				uint32_t cur_tp = sn->seq[seq_idx].type;
-				uint32_t best_hit_tp = sn->seq[seq_idx].best_hit  == 0xFFFFFFFF ? 7 : sn->seq[sn->seq[seq_idx].best_hit].type;
+				uint32_t best_hit_tp = sn->seq[seq_idx].best_hit  == 0xFFFFFFFF ? UNDEF : sn->seq[sn->seq[seq_idx].best_hit].type;
 				//if both types are haplotigs or repeat 
 				if (cur_tp == HAPLOTIG || cur_tp == REPEAT)  {
 					if (best_hit_tp == HAPLOTIG || best_hit_tp == REPEAT) {
 						fprintf(stderr, "RESET: %s\t%s\n", sn->seq[seq_idx].name, sn->seq[sn->seq[seq_idx].best_hit].name);
-						sn->seq[sn->seq[seq_idx].best_hit].type = 7;
+						sn->seq[sn->seq[seq_idx].best_hit].type = UNDEF;
 						sn->seq[sn->seq[seq_idx].best_hit].del2 = 0;
 					}
 				   sn->seq[seq_idx].del2 = 1;	
@@ -954,7 +954,7 @@ int classify_seq(cov_ary_t *ca, sdict_t *sn, sdict_t *osn, uint32_t* cutoffs, fl
 			else dip_n += (s1e - s  + 1);	
 			if ((float) low_n / (s1e - s1s + 1) > min_frac) cur_seq->aux = JUNK;
 			else if ((float)dip_n / (s1e - s1s + 1) > min_frac) cur_seq->aux = PRIMARY;
-			else if ((float)high_n / (s1e - s1s + 1) > min_frac)	cur_seq->aux = REPEAT;
+			else if ((float)high_n / (s1e - s1s + 1) > min_frac)	cur_seq->aux = HIGH;
 			else cur_seq->aux = HAPLOTIG;
 		}
 		fprintf(stderr, "%s\t%u\t%u\t%u\t%u\n", cur_seq->name, low_n, hap_n, dip_n, high_n);
@@ -1331,9 +1331,9 @@ int flt_by_tp(sdict_t *sn, dup_v *dups)
 			dup_t k = (dup_t){(uint32_t)i, JUNK, 0, 1, sn->seq[i].len};
 			kv_push(dup_t, *dups, k);
 			sn->seq[i].del = 1;
-		} else if (sn->seq[i].aux == REPEAT) {
+		} else if (sn->seq[i].aux == HIGH) {
 			fprintf(stderr, "tp:%s\n", sn->seq[i].name);
-			dup_t k = (dup_t){(uint32_t)i, REPEAT, 0, 1, sn->seq[i].len};
+			dup_t k = (dup_t){(uint32_t)i, HIGH, 0, 1, sn->seq[i].len};
 			kv_push(dup_t, *dups, k);
 			sn->seq[i].del = 1;
 		}
