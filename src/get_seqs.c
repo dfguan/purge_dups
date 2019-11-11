@@ -180,8 +180,9 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 		else 
 			fprintf(hp, ">%s\n%s\n", name, hapseq);
 	} else {
+		fprintf(stderr, "KH: %d\tTP: %d, HIGH: %d\n", kh, tp, HIGH);
 		if (kh && tp == HIGH) 
-			fprintf(hp, ">%s %s\n%s\n", name, dup_type_s[tp], s);
+			fprintf(pp, ">%s %s\n%s\n", name, dup_type_s[tp], s);
 		else {
 			if (ahp) 	
 				fprintf(hp, ">hap_%s %s\n%s\n", name, dup_type_s[tp], s);
