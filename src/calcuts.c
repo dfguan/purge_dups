@@ -296,14 +296,14 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 				} else 
 					locopts.a[i].del = 1; // is local peaks  
 		}
-		fprintf(stderr, "[M::%s] Merge local peaks and valleys: %d peaks\n", __func__, peakn);
+		fprintf(stderr, "[M::%s] Merge local peaks and valleys: %d peaks remain\n", __func__, peakn);
 		//would not like any peak/valleys less than LOWEST_CUT
 		for ( i = 0; i < locopts.n; ++i) 
 			if (locopts.a[i].idx_s < LOWEST_CUT) {
 				if (locopts.a[i].ispeak) --peakn;	
 				locopts.a[i].del = 1;
 			}
-		fprintf(stderr, "[M::%s] Remove peaks and valleys less than %d: %d peaks\n", __func__, LOWEST_CUT, peakn);
+		fprintf(stderr, "[M::%s] Remove peaks and valleys less than %d: %d peaks remain\n", __func__, LOWEST_CUT, peakn);
 		//remove deleted 
 		/*print_loopt(locopts.a, locopts.n);*/
 		for ( i = 0, j = 0; j < locopts.n; ++j) {
@@ -361,8 +361,8 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 	} 
 	if (!fhord) {
 		int mean = get_mean(depth2cnt);
-		fprintf(stderr, "[M::%s] mean: %d\tpeak: %d\n, mean %s than peak, treat as %s\n assembly", __func__, mean, max_idx, mean <= max_idx ? "not larger" : "larger", mean <= max_idx ? "haploid":"diploid");
-		if (norm_cdf(mean<=max_idx? max_idx : mean, 0.5, mean + max_idx) <=0.95) fprintf(stderr, "[W::%s] mean is not significantly different with peak, please check the cutoffs\n", __func__);
+		fprintf(stderr, "[M::%s] mean: %d, peak: %d, mean %s than peak, treat as %s assembly\n", __func__, mean, max_idx, mean <= max_idx ? "not larger" : "larger", mean <= max_idx ? "haploid":"diploid");
+		if (norm_cdf(mean<=max_idx? max_idx : mean, 0.5, mean + max_idx) <=0.95) fprintf(stderr, "[W::%s] mean is not significantly different with peak, please recheck the cutoffs\n", __func__);
 		//hump is on right side is hapliod covrage
 		if (mean <= max_idx) isdip = 0;
 	} else if (fhord == 1) 
