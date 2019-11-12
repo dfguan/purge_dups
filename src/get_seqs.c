@@ -159,7 +159,7 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 		seq[poi] = 0;
 	}
 	uint32_t happoi = 0;
-	uint32_t tp;
+	uint32_t tp = UNKNOWN;
 	for (i = 1; i < n - 1; ++i) {
 		uint32_t st, ed;
 		st = dp[i].s;
@@ -175,12 +175,12 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 	}	
 	if (poi > ml && (float) poi / l > mlp) {
 		fprintf(pp, ">%s\n%s\n", name, seq);
-		if (ahp)
-			fprintf(hp, ">hap_%s\n%s\n", name, hapseq);
+		if (ahp) 
+			fprintf(hp, ">hap_%s %s\n%s\n", name, dup_type_s[tp], hapseq);
 		else 
-			fprintf(hp, ">%s\n%s\n", name, hapseq);
+			fprintf(hp, ">%s %s\n%s\n", name, dup_type_s[tp], hapseq);
 	} else {
-		fprintf(stderr, "KH: %d\tTP: %d, HIGH: %d\n", kh, tp, HIGH);
+		/*fprintf(stderr, "Name %s KH: %d\tTP: %d, HIGH: %d\n", name, kh, tp, HIGH);*/
 		if (kh && tp == HIGH) 
 			fprintf(pp, ">%s %s\n%s\n", name, dup_type_s[tp], s);
 		else {
