@@ -56,6 +56,7 @@ enum dup_type {JUNK, HIGH, HAPLOTIG, PRIMARY, REPEAT, OVLP, UNKNOWN, UNDEF};
 char *dup_type_s[] = {"JUNK", "HIGHCOV", "HAPLOTIG", "PRIMARY", "REPEAT", "OVLP", "UNKNOWN"};
 typedef struct {
 	uint32_t sn:28, tp:3, del:1; //don't think there will be 2G contigs
+	uint32_t psn;
 	uint32_t s, e;
 }dup_t;
 
@@ -82,7 +83,7 @@ int print_dups(dup_v *dups, sdict_t *dup_n)
 	size_t n = dups->n;
 	size_t i;
 	for ( i = 0; i < n; ++i ) 
-		fprintf(stdout, "%s\t%u\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp]);
+		~dp[i].psn ? fprintf(stdout, "%s\t%u\t%u\t%s\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].psn].name): fprintf(stdout, "%s\t%u\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp]);
 	return 0;
 }
 
@@ -570,7 +571,7 @@ int flt_by_bm_mm(eg_hit_t *rht, uint64_t *idx, size_t n_idx, sdict_t *sn, dup_v 
 	for (j = 0; j < n_idx; ++j) {
 		if (sn->seq[j].del2)	{
 			fprintf(stderr, "TYPE: %s\t%s\n", sn->seq[j].name, dup_type_s[sn->seq[j].type]);
-			dup_t k = (dup_t){(uint32_t)j, sn->seq[j].type, 0, 1, sn->seq[j].len};	
+			dup_t k = (dup_t){(uint32_t)j, sn->seq[j].type, 0, sn->seq[j].best_hit, 1, sn->seq[j].len};	
 			kv_push(dup_t, *dups, k);
 			sn->seq[j].del = 1;
 		}
@@ -1151,7 +1152,7 @@ int flt_hits3(eg_hit_t *rht, size_t n, uint32_t *cutoffs, int usecuts, sdict_t *
 				/*name = sn->seq[rht[i].qns >> 32].name;*/
 				/*parse_name(name, strlen(name), &nt);*/
 				fprintf(stderr, "removed:\t%s\t%u\t%u\t%s\t%u\t%u\n", sn->seq[rht[i].qns>>32].name, rht[i].qcov, cutoffs[2], sn->seq[rht[i].tns>>32].name, rht[i].tcov, cutoffs[2]);
-				dup_t k = (dup_t) {(uint32_t)(rht[i].qns >>32), HAPLOTIG, 0, 1, rht[i].qe};	
+				dup_t k = (dup_t) {(uint32_t)(rht[i].qns >>32), HAPLOTIG, 0, (uint32_t)(rht[i].tns >> 32), 1, rht[i].qe};	
 				/*dup_t k = (dup_t) {sd_get(osn, nt.ctgn), nt.s, nt.e};	*/
 				kv_push(dup_t, *dups, k);
 				rht[i].del = 1;
@@ -1160,7 +1161,7 @@ int flt_hits3(eg_hit_t *rht, size_t n, uint32_t *cutoffs, int usecuts, sdict_t *
 				fprintf(stderr, "removed:\t%s\t%u\t%u\t%s\t%u\t%u\n", sn->seq[rht[i].tns>>32].name, rht[i].tcov, cutoffs[2], sn->seq[rht[i].qns>>32].name, rht[i].qcov, cutoffs[2]);
 				/*name = sn->seq[rht[i].qns >> 32].name;*/
 				/*parse_name(name, strlen(name), &nt);*/
-				dup_t k = (dup_t) {(uint32_t)(rht[i].tns >>32), HAPLOTIG, 0,  1, rht[i].te};	
+				dup_t k = (dup_t) {(uint32_t)(rht[i].tns >>32), HAPLOTIG, 0, (uint32_t) (rht[i].qns >> 32), 1, rht[i].te};	
 				kv_push(dup_t, *dups, k);
 				rht[i].del = 1;
 			} else if (usecuts && (rht[i].ttg == 3 || rht[i].qtg == 3))  //ususally not possible
@@ -1203,10 +1204,10 @@ int purge_dups2(eg_hit_t *rht, size_t n,sdict_t *sn, dup_v *dups) //second round
 			/*fprintf(stderr, "sn: %s %d %d %s %d %d\n",sn->seq[rht[i].qns >> 32].name, occ_cnt[((rht[i].qns>>32)<<2) | rht[i].qtg ], rht[i].qtg, sn->seq[rht[i].tns>>32].name, rht[i].ttg, occ_cnt[((rht[i].tns >> 32) << 2) | rht[i].ttg]);*/
 			if (!mask[rht[i].bl]) {
 				if (sn->seq[rht[i].qns >> 32].len < sn->seq[rht[i].tns >>32].len) {
-					dup_t k = (dup_t) {(uint32_t)(rht[i].qns >>32), OVLP, 0, (uint32_t)rht[i].qns, rht[i].qe};	
+					dup_t k = (dup_t) {(uint32_t)(rht[i].qns >>32), OVLP, 0, (uint32_t)(rht[i].tns >> 32), (uint32_t)rht[i].qns, rht[i].qe};	
 					kv_push(dup_t, *dups, k);
 				} else {
-					dup_t k = (dup_t) {(uint32_t)(rht[i].tns >>32), OVLP, 0, (uint32_t)rht[i].tns, rht[i].te};	
+					dup_t k = (dup_t) {(uint32_t)(rht[i].tns >>32), OVLP, 0, (uint32_t) (rht[i].qns >> 32), (uint32_t)rht[i].tns, rht[i].te};	
 					kv_push(dup_t, *dups, k);
 				}
 			}	
@@ -1246,10 +1247,10 @@ int purge_dups(eg_hit_t *rht, size_t n,sdict_t *sn, dup_v *dups) //second round 
 			/*fprintf(stderr, "sn: %s %d %d %s %d %d\n",sn->seq[rht[i].qns >> 32].name, occ_cnt[((rht[i].qns>>32)<<2) | rht[i].qtg ], rht[i].qtg, sn->seq[rht[i].tns>>32].name, rht[i].ttg, occ_cnt[((rht[i].tns >> 32) << 2) | rht[i].ttg]);*/
 			if (occ_cnt[((rht[i].qns >> 32) << 2) | rht[i].qtg] == 1 && occ_cnt[((rht[i].tns >> 32) << 2) | rht[i].ttg] == 1) {
 				if (sn->seq[rht[i].qns >> 32].len < sn->seq[rht[i].tns >>32].len) {
-					dup_t k = (dup_t) {(uint32_t)(rht[i].qns >>32), HAPLOTIG, 0, (uint32_t)rht[i].qns, rht[i].qe};	
+					dup_t k = (dup_t) {(uint32_t)(rht[i].qns >>32), HAPLOTIG, 0, (uint32_t)(rht[i].tns >> 32), (uint32_t)rht[i].qns, rht[i].qe};	
 					kv_push(dup_t, *dups, k);
 				} else {
-					dup_t k = (dup_t) {(uint32_t)(rht[i].tns >>32), HAPLOTIG, 0, (uint32_t)rht[i].tns, rht[i].te};	
+					dup_t k = (dup_t) {(uint32_t)(rht[i].tns >>32), HAPLOTIG, 0, (uint32_t) (rht[i].qns >> 32), (uint32_t)rht[i].tns, rht[i].te};	
 					kv_push(dup_t, *dups, k);
 				}
 			}	
@@ -1290,6 +1291,13 @@ int update_dup_cords(dup_v *dups, sdict_t *sn, sdict_t *dup_n)
 		dp[i].s = nt.s + dp[i].s - 1;
 		dp[i].e = nt.s + dp[i].e - 1;
 		dp[i].del = 0;
+		if (~dp[i].psn) {
+			name = sn->seq[dp[i].sn].name;
+			parse_name(name, strlen(name), &nt);
+			idx = sd_put(dup_n, nt.ctgn, 0, 1);
+			name[nt.nl] = ':';
+			dp[i].psn = idx;	
+		}
 	}
 	return 0;	
 }	
@@ -1300,17 +1308,21 @@ int merge_dups(dup_v *dups)
 	size_t n = dups->n;
 	size_t i,j;
 	if (!n) return 0;
-	uint32_t s = dp[0].s, e= dp[0].e, tp = dp[0].tp;
+	uint32_t s = dp[0].s, e= dp[0].e, tp = dp[0].tp, psn = dp[0].psn;
 	for ( i = 1, j= 0; i <= n; ++i) {
 		if (i == n || dp[i].sn != dp[j].sn || dp[i].s > e) {
-			dp[j].s = s, dp[j].e = e, dp[j].del = 0, dp[j].tp = tp;
-			if (i != n) s=dp[i].s, e= dp[i].e, tp = dp[i].tp;
+			dp[j].s = s, dp[j].e = e, dp[j].del = 0, dp[j].tp = tp, dp[j].psn = psn;
+			if (i != n) s=dp[i].s, e= dp[i].e, tp = dp[i].tp, psn = dp[i].psn;
 		   	j = i;	
 		} else {
 			if (dp[i].e > e) 
 				e = dp[i].e;
 			if (dp[i].tp != tp)
 				tp = UNKNOWN;
+			if (dp[i].psn != psn)  {
+				/*fprintf(stderr, "[W::%s] Two overlaps are mapped to different contigs\n", )*/
+				psn = -1;	
+			}
 			dp[i].del = 1;
 		}
 	}
@@ -1328,12 +1340,12 @@ int flt_by_tp(sdict_t *sn, dup_v *dups)
 	for ( i = 0; i < n; ++i) {
 		if (sn->seq[i].aux == JUNK ) {
 			fprintf(stderr, "tp:%s\n", sn->seq[i].name);
-			dup_t k = (dup_t){(uint32_t)i, JUNK, 0, 1, sn->seq[i].len};
+			dup_t k = (dup_t){(uint32_t)i, JUNK, 0, -1, 1, sn->seq[i].len};
 			kv_push(dup_t, *dups, k);
 			sn->seq[i].del = 1;
 		} else if (sn->seq[i].aux == HIGH) {
 			fprintf(stderr, "tp:%s\n", sn->seq[i].name);
-			dup_t k = (dup_t){(uint32_t)i, HIGH, 0, 1, sn->seq[i].len};
+			dup_t k = (dup_t){(uint32_t)i, HIGH, 0, -1, 1, sn->seq[i].len};
 			kv_push(dup_t, *dups, k);
 			sn->seq[i].del = 1;
 		}
@@ -1452,7 +1464,10 @@ int main(int argc, char *argv[])
 	/*fprintf(stderr, "dups %d %p\n", __LINE__, dups.a);*/
 	update_dup_cords(&dups, sn, dup_n);	
 	qsort(dups.a, dups.n, sizeof(dup_t), cmp_dupt);	
+	/*fprintf(stdout, "Before merging\n");*/
+	/*print_dups(&dups, dup_n);*/
 	merge_dups(&dups);
+	/*fprintf(stdout, "After merging\n");*/
 	print_dups(&dups, dup_n);
 	sd_destroy(dup_n);
 	kv_destroy(dups);
