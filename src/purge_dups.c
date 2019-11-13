@@ -451,7 +451,7 @@ int get_bm_mm_core2(eg_hit_t *rht, size_t s, size_t e, sdict_t *sn, int *bmf, in
 	}
 	*bmf = bml * 100 / ql;
 	*mmf = mml * 100 / ql;
-	fprintf(stderr, "bmfore: %s\t%s\t%f\t%f\n", sn->seq[rht[s].qns >> 32].name, sn->seq[rht[s].tns >>32].name, (float) bml * 100/ql, (float) mml * 100/ql);
+	/*fprintf(stderr, "bmfore: %s\t%s\t%f\t%f\n", sn->seq[rht[s].qns >> 32].name, sn->seq[rht[s].tns >>32].name, (float) bml * 100/ql, (float) mml * 100/ql);*/
 	return 0;
 }
 
@@ -478,7 +478,7 @@ int get_bm_mm_core(eg_hit_t *rht, size_t s, size_t e, sdict_t *sn, int *sid, int
 	/*fprintf(stderr,"bm: %d\t%d\t%d\n", tmp_mm[0], tmp_mm[1], tmp_sid[0]);*/
 	*mm = tmp_mm[0] > tmp_mm[1] ? tmp_mm[0] : tmp_mm[1];
 	*sid = tmp_sid[0];
-	fprintf(stderr,"bm: %s\t%s\t%d\t%d\n", sn->seq[rht[s].qns >> 32].name, tmp_sid[0] == -1 ? "null" : sn->seq[tmp_sid[0]].name, *bm, *mm);
+	/*fprintf(stderr,"bm: %s\t%s\t%d\t%d\n", sn->seq[rht[s].qns >> 32].name, tmp_sid[0] == -1 ? "null" : sn->seq[tmp_sid[0]].name, *bm, *mm);*/
 	return 0;
 }
 int flt_by_bm_mm(eg_hit_t *rht, uint64_t *idx, size_t n_idx, sdict_t *sn, dup_v *dups, int min_bm, int min_mm)
@@ -524,7 +524,7 @@ int flt_by_bm_mm(eg_hit_t *rht, uint64_t *idx, size_t n_idx, sdict_t *sn, dup_v 
 				//if both types are haplotigs or repeat 
 				if (cur_tp == HAPLOTIG || cur_tp == REPEAT)  {
 					if (best_hit_tp == HAPLOTIG || best_hit_tp == REPEAT) {
-						fprintf(stderr, "RESET: %s\t%s\n", sn->seq[seq_idx].name, sn->seq[sn->seq[seq_idx].best_hit].name);
+						/*fprintf(stderr, "RESET: %s\t%s\n", sn->seq[seq_idx].name, sn->seq[sn->seq[seq_idx].best_hit].name);*/
 						sn->seq[sn->seq[seq_idx].best_hit].type = UNDEF;
 						sn->seq[sn->seq[seq_idx].best_hit].del2 = 0;
 					}
@@ -570,7 +570,7 @@ int flt_by_bm_mm(eg_hit_t *rht, uint64_t *idx, size_t n_idx, sdict_t *sn, dup_v 
 	//write dups 
 	for (j = 0; j < n_idx; ++j) {
 		if (sn->seq[j].del2)	{
-			fprintf(stderr, "TYPE: %s\t%s\n", sn->seq[j].name, dup_type_s[sn->seq[j].type]);
+			/*fprintf(stderr, "TYPE: %s\t%s\n", sn->seq[j].name, dup_type_s[sn->seq[j].type]);*/
 			dup_t k = (dup_t){(uint32_t)j, sn->seq[j].type, 0, sn->seq[j].best_hit, 1, sn->seq[j].len};	
 			kv_push(dup_t, *dups, k);
 			sn->seq[j].del = 1;
@@ -958,7 +958,7 @@ int classify_seq(cov_ary_t *ca, sdict_t *sn, sdict_t *osn, uint32_t* cutoffs, fl
 			else if ((float)high_n / (s1e - s1s + 1) > min_frac)	cur_seq->aux = HIGH;
 			else cur_seq->aux = HAPLOTIG;
 		}
-		fprintf(stderr, "%s\t%u\t%u\t%u\t%u\n", cur_seq->name, low_n, hap_n, dip_n, high_n);
+		/*fprintf(stderr, "%s\t%u\t%u\t%u\t%u\n", cur_seq->name, low_n, hap_n, dip_n, high_n);*/
 	}
 	return 0;
 }
@@ -1151,14 +1151,14 @@ int flt_hits3(eg_hit_t *rht, size_t n, uint32_t *cutoffs, int usecuts, sdict_t *
 				sn->seq[rht[i].qns >> 32].del = 1;
 				/*name = sn->seq[rht[i].qns >> 32].name;*/
 				/*parse_name(name, strlen(name), &nt);*/
-				fprintf(stderr, "removed:\t%s\t%u\t%u\t%s\t%u\t%u\n", sn->seq[rht[i].qns>>32].name, rht[i].qcov, cutoffs[2], sn->seq[rht[i].tns>>32].name, rht[i].tcov, cutoffs[2]);
+				/*fprintf(stderr, "removed:\t%s\t%u\t%u\t%s\t%u\t%u\n", sn->seq[rht[i].qns>>32].name, rht[i].qcov, cutoffs[2], sn->seq[rht[i].tns>>32].name, rht[i].tcov, cutoffs[2]);*/
 				dup_t k = (dup_t) {(uint32_t)(rht[i].qns >>32), HAPLOTIG, 0, (uint32_t)(rht[i].tns >> 32), 1, rht[i].qe};	
 				/*dup_t k = (dup_t) {sd_get(osn, nt.ctgn), nt.s, nt.e};	*/
 				kv_push(dup_t, *dups, k);
 				rht[i].del = 1;
 			} else if (!usecuts && rht[i].ttg == 3) {
 				sn->seq[rht[i].tns >> 32].del = 1;	
-				fprintf(stderr, "removed:\t%s\t%u\t%u\t%s\t%u\t%u\n", sn->seq[rht[i].tns>>32].name, rht[i].tcov, cutoffs[2], sn->seq[rht[i].qns>>32].name, rht[i].qcov, cutoffs[2]);
+				/*fprintf(stderr, "removed:\t%s\t%u\t%u\t%s\t%u\t%u\n", sn->seq[rht[i].tns>>32].name, rht[i].tcov, cutoffs[2], sn->seq[rht[i].qns>>32].name, rht[i].qcov, cutoffs[2]);*/
 				/*name = sn->seq[rht[i].qns >> 32].name;*/
 				/*parse_name(name, strlen(name), &nt);*/
 				dup_t k = (dup_t) {(uint32_t)(rht[i].tns >>32), HAPLOTIG, 0, (uint32_t) (rht[i].qns >> 32), 1, rht[i].te};	
@@ -1201,7 +1201,7 @@ int purge_dups2(eg_hit_t *rht, size_t n,sdict_t *sn, dup_v *dups) //second round
 	}	
 	for ( i = 0; i < n; ++i) {
 		if ((rht[i].qns >> 32) < (rht[i].tns >> 32)) {
-			/*fprintf(stderr, "sn: %s %d %d %s %d %d\n",sn->seq[rht[i].qns >> 32].name, occ_cnt[((rht[i].qns>>32)<<2) | rht[i].qtg ], rht[i].qtg, sn->seq[rht[i].tns>>32].name, rht[i].ttg, occ_cnt[((rht[i].tns >> 32) << 2) | rht[i].ttg]);*/
+			fprintf(stderr, "OVLP: %s %d %d %d %s %d %d %d\n",sn->seq[rht[i].qns >> 32].name, (uint32_t) (rht[i].qns), rht[i].qe, rht[i].qcov, sn->seq[rht[i].tns >> 32].name, (uint32_t) rht[i].tns, rht[i].te, rht[i].tcov);
 			if (!mask[rht[i].bl]) {
 				if (sn->seq[rht[i].qns >> 32].len < sn->seq[rht[i].tns >>32].len) {
 					dup_t k = (dup_t) {(uint32_t)(rht[i].qns >>32), OVLP, 0, (uint32_t)(rht[i].tns >> 32), (uint32_t)rht[i].qns, rht[i].qe};	
