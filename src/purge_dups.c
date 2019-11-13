@@ -1292,7 +1292,7 @@ int update_dup_cords(dup_v *dups, sdict_t *sn, sdict_t *dup_n)
 		dp[i].e = nt.s + dp[i].e - 1;
 		dp[i].del = 0;
 		if (~dp[i].psn) {
-			name = sn->seq[dp[i].sn].name;
+			name = sn->seq[dp[i].psn].name;
 			parse_name(name, strlen(name), &nt);
 			idx = sd_put(dup_n, nt.ctgn, 0, 1);
 			name[nt.nl] = ':';
