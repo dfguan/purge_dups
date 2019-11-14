@@ -92,14 +92,20 @@ int aa_pb(char *paf_fn[], int n_paf, int min_cov, int max_cov, int min_mq, uint3
 	}
 		
 #ifdef DEBUG
-	fprintf(stderr, "[M::%s] select supported regions\n", __func__);
+	fprintf(stderr, "[M::%s] print coverage histogram for the contigs\n", __func__);
 #endif
 	/*sel_sup_reg(ca, min_cov_rat, min_cov, max_cov_rat, max_cov, ctgs);*/
 	char *type = "PB";
 	char *desc = "pacbio data";
 
 	print_coverage_stat(ca, max_cov, ctgs, type, out_dir);
+#ifdef DEBUG
+	fprintf(stderr, "[M::%s] print coverage for each base of the contigs\n", __func__);
+#endif
 	print_base_coverage(ca, ctgs, type, out_dir);
+#ifdef DEBUG
+	fprintf(stderr, "[M::%s] print average coverage for each 1024 base of the contigs\n", __func__);
+#endif
 	print_coverage_wig(ca, ctgs, type, 1024, out_dir);
 #ifdef DEBUG
 	fprintf(stderr, "[M::%s] release coverage vector space\n", __func__);
