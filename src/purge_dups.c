@@ -930,7 +930,7 @@ int classify_seq(cov_ary_t *ca, sdict_t *sn, sdict_t *osn, uint32_t* cutoffs, fl
 		uint32_t bs, be, s;
 		cur_seq->aux = JUNK;
 		if (~sid && ca[sid].n) {
-			if (s1s == 1 && s1e == cur_seq->len) 
+			if (s1s == 1 && s1e == osn->seq[sid].len) 
 				bs = 0, be = ca[sid].n - 1;
 			else {
 				bs = bin_srch(&ca[sid], ca[sid].n, s1s);	
