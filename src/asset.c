@@ -265,6 +265,10 @@ void print_coverage_stat(cov_ary_t *ca, int max_cov, sdict_t* ctgs, char *tp, ch
 	if (!fp) return;
 	int i, j;
 	uint32_t *freq = (uint32_t *)calloc(max_cov + 1, sizeof(uint32_t));
+	if (!freq) {
+		fprintf(stderr, "[E::%s] fail to allocate memory space for frequency vector, quit!\n", __func__);
+		return;
+	}
 	for ( i = 0; i < ctgs->n_seq; ++i) {
 		if (ca[i].n) {
 			for (j = 0; j < ca[i].n; ++j) {
@@ -279,8 +283,11 @@ void print_coverage_stat(cov_ary_t *ca, int max_cov, sdict_t* ctgs, char *tp, ch
 	for ( i = 0; i <= max_cov; ++i) 
 		fprintf(fp, "%d\t%u\n", i, freq[i]);
 	fclose(fp);	
+	/*fprintf(stderr, "releasing frequency vector\n");*/
 	free(freq);
+	/*fprintf(stderr, "releasing filename vector\n");*/
 	free(wigname);	
+	/*fprintf(stderr, "leave %s\n", __func__);*/
 }
 
 void print_coverage_wig(cov_ary_t *ca, sdict_t* ctgs, char *tp, uint32_t ws, char *out_dir)
@@ -393,7 +400,7 @@ cov_ary_t *cal_cov(ctg_pos_t *d, sdict_t* ctgs)
 		radix_sort_pos(ps->p, ps->p + ps->n);
 		/*fprintf(stderr, "leave sort\n");*/
 		/*fprintf(stdout, "%u\n", ps->n);*/
-		int s = 1, e;
+		int s = 1, e = 0;
 		/*fprintf(stderr, "enter cal\n");*/
 		for (j = 0; j < ps->n; ++j) {
 			if (ps->p[j] & 1) {
