@@ -81,7 +81,7 @@ int get_max(uint32_t *depth2cnt)
 	int max_idx;
 	uint32_t max_cnt = 0;
 	int i;
-	for ( i = 1; i < MAX_DEPTH; ++i) 
+	for ( i = LOWEST_CUT + 1; i < MAX_DEPTH; ++i) 
 		if (depth2cnt[i] > max_cnt) max_idx = i, max_cnt = depth2cnt[i];
 	return max_idx;
 }
