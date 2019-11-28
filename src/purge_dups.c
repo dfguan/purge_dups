@@ -83,7 +83,7 @@ int print_dups(dup_v *dups, sdict_t *dup_n)
 	size_t n = dups->n;
 	size_t i;
 	for ( i = 0; i < n; ++i ) 
-		~dp[i].psn ? fprintf(stdout, "%s\t%u\t%u\t%s\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].psn].name): fprintf(stdout, "%s\t%u\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp]);
+		~dp[i].psn ? fprintf(stdout, "%s\t%u\t%u\t%s\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].sn].len, dup_n->seq[dp[i].psn].name): fprintf(stdout, "%s\t%u\t%u\t%s\t%u\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].sn].len);
 	return 0;
 }
 
@@ -1378,11 +1378,11 @@ int main(int argc, char *argv[])
 	size_t n_ind = sn->n_seq;
 	cov_ary_t *ca = 0;
 	sdict_t *osn = 0;
+	osn = sd_init();
 	if (!get_cuts(opts.cut_fn, cutoffs)) {
 #ifdef DEBUG
 	fprintf(stderr, "[M::%s] finish reading cutoffs\n", __func__);
 #endif	
-		osn = sd_init();
 		ca = read_covs(opts.cov_fn, osn);
 #ifdef DEBUG
 	fprintf(stderr, "[M::%s] finish reading coverages\n", __func__);
@@ -1442,7 +1442,6 @@ int main(int argc, char *argv[])
 	if (ca) {
 		cal_cov_4reg(rhts->rht, rhts->n, ca, sn, osn, cutoffs, opts.min_frac);		
 		flt_hits3(rhts->rht, rhts->n,cutoffs, 1, sn, &dups);
-		sd_destroy(osn);
 	} else 
 		flt_hits3(rhts->rht, rhts->n,cutoffs, 0, sn, &dups);
 
@@ -1460,19 +1459,20 @@ int main(int argc, char *argv[])
 	//this part create undirected graph
 	purge_dups2(rhts->rht, rhts->n, sn, &dups); //second round to purge continous query 
 	//time to update dups 
-	sdict_t *dup_n = sd_init();
+	/*sdict_t *dup_n = sd_init();*/
 	/*fprintf(stderr, "dups %d %p\n", __LINE__, dups.a);*/
-	update_dup_cords(&dups, sn, dup_n);	
+	update_dup_cords(&dups, sn, osn);	
 	qsort(dups.a, dups.n, sizeof(dup_t), cmp_dupt);	
 	/*fprintf(stdout, "Before merging\n");*/
 	/*print_dups(&dups, dup_n);*/
 	merge_dups(&dups);
 	/*fprintf(stdout, "After merging\n");*/
-	print_dups(&dups, dup_n);
-	sd_destroy(dup_n);
+	print_dups(&dups, osn);
+	/*sd_destroy(dup_n);*/
 	kv_destroy(dups);
 	if (rhts) eg_destroy(rhts);	
 	sd_destroy(sn);	
+	sd_destroy(osn);
 
 	/*fprintf(stderr,"[M::%s] parsing paf...\n", __func__);*/
 	return 0;	
