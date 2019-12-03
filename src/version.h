@@ -15,7 +15,6 @@
  *
  * =====================================================================================
  */
-#define MAJOR 0
+#define MAJOR 1
 #define MINOR 0
-#define PATCH 3
-#define TAG "ph_trial"
+#define PATCH 0

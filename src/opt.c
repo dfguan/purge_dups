@@ -19,11 +19,19 @@
 #include <string.h>
 #include <getopt.h>
 
+
 #include "opt.h"
+#include "version.h"
+#define PROGRAM "purge_dups"
+#define EMAIL "dfguan9@gmail.com"
 
 int help()
 {
-	fprintf(stderr, "\nUsage: update [options] <PAF>\n");
+	fprintf(stderr, "\nProgram: %s\n", PROGRAM);
+	fprintf(stderr, "Version: %d.%d.%d\n", MAJOR, MINOR, PATCH);
+	fprintf(stderr, "Contact: %s\n", EMAIL);
+	
+	fprintf(stderr, "\nUsage: purge_dups [options] <PAF>\n");
 	fprintf(stderr, "Options:\n");	
 	/*fprintf(stderr, "         -r    FLOAT    minimum overlap ratio for an alignment [0.8]\n");	*/
 	
