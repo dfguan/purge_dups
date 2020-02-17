@@ -24,7 +24,7 @@ purge\_dups is designed to remove haplotigs and contig overlaps in a *de novo* a
 
 You can follow the [Usage](#usg) part and use our pipeline to purge your assembly or go to the [Pipeline Guide](#pplg) to build your own pipeline.
 
-![purge_dups pipeline](https://github.com/dfguan/purge_dups/blob/master/purge_dupspipeline.png)
+![purge_dups pipeline](./purge_dupspipeline.png)
 
 
 
@@ -101,6 +101,8 @@ configuration file is in json format, it has all the information required by run
     "core": 12,
     "mem": 20000,
     "queue": "normal",
+	"bwa_opt":"",
+	"mnmp_opt":"",
     "ispb": 1,
     "skip": 0
   },

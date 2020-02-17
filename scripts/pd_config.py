@@ -21,7 +21,7 @@ def alz_fn(d, fn):
     tech = fn_list[1]
     return [fl_path, enzyme, tech]
 
-def gen_config(r, d, fn):
+def gen_config(r, d, fn, skipB):
     #write a new config file
     ref_fn = os.path.splitext(os.path.basename(r))[0] 
     busco_lineage = {'a': "tetrapoda", 'b': "aves", 'd': "embryophyta", 'e': "metazoa", 'f': "actinopterygii", 'i': "insecta", 'h': "eukaryota", 'm': "mammalia", 'q': "arthropoda", 's': "vertebrata", 'x':"metazoa"}
@@ -30,7 +30,7 @@ def gen_config(r, d, fn):
     out_fn = fn 
     f = open(out_fn, 'w')
     jd = {
-            "cc":{"fofn":"", "isdip":1, "core":12,"mem":20000, "queue":"normal", "ispb":1, "skip":0},
+            "cc":{"fofn":"", "isdip":1, "core":12,"mem":20000, "queue":"normal", "mnmp_opt":"", "bwa_opt":"", "ispb":1, "skip":0},
             "sa":{"core":12, "mem":10000, "queue":"normal"},
             "busco":{"core":12, "mem":20000, "queue":"long", "skip":0, "lineage":used_lineage, "prefix":ref_fn+"_purged", "tmpdir":"busco_tmp"},
             "pd":{"mem": 20000, "queue": "normal"}, 
@@ -49,9 +49,12 @@ def gen_config(r, d, fn):
         jd["kcp"]["fofn"] = fofn_fn
     else:
         jd["kcp"]["skip"] = 1
+    if skipB: 
+        jd["busco"]["skip"] = 1
+
     json.dump(jd, f, indent = 2) 
     f.close()
-def worker(ref, ref_dir, pbfofn, txfofn, ldbdir, out_fn):
+def worker(ref, ref_dir, pbfofn, txfofn, ldbdir, out_fn, skipB):
     if not os.path.isfile(ref):
         print ("file {} doesn't exist".format(ref))
         return 1
@@ -78,7 +81,7 @@ def worker(ref, ref_dir, pbfofn, txfofn, ldbdir, out_fn):
     if txfofn:
         cp_cmd = "cp {0} {1}/10x.fofn".format(txfofn, ldbdir)
         os.system(cp_cmd)
-    gen_config(get_abspath(rpath), ldbdir, out_fn)  
+    gen_config(get_abspath(rpath), ldbdir, out_fn, skipB)  
     return 0
 
 def proc_ref(ref, ref_dir, pbdbdir,txdbdir, ldbdir):
@@ -121,9 +124,10 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description='generate a configuration file in json format')
     parser.add_argument('-s', '--srfofn', type=str, action="store", dest = "srf", help ='list of short reads files (one record per line, the record is a tab splitted line of abosulte file path plus trimmed bases, refer to https://github.com/dfguan/KMC) [NONE]')
     parser.add_argument('-l', '--localdir', type=str, action="store", dest = "locd", help ='local directory to keep the reference and lists of the pacbio, short reads files [.]', default=".")
+    parser.add_argument('-B', '--skipB',  action = "store_true", dest = "skipB", help = 'skip running busco [False]')
     parser.add_argument('-n', '--name', type=str, action="store", dest = "fn", help ='output config file name [config.json]', default = "config.json")
     parser.add_argument('--version', action='version', version='%(prog)s 0.0.0')
     parser.add_argument('ref', type=str, action="store", help = "reference file")
     parser.add_argument('pbfofn', type=str, action="store", help = "list of pacbio file (one absolute file path per line)")
     opts = parser.parse_args()
-    sys.exit(worker(opts.ref, opts.locd, opts.pbfofn,opts.srf, opts.locd, opts.fn))
+    sys.exit(worker(opts.ref, opts.locd, opts.pbfofn,opts.srf, opts.locd, opts.fn, opts.skipB))
