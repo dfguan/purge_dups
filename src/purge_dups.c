@@ -251,6 +251,19 @@ int cmp_qn(const void *r, const void *s)
 	else return -1;
 }
 
+int cmp_q2(const void *r, const void *s)
+{
+	eg_hit_t *p = (eg_hit_t *)r;
+	eg_hit_t *q = (eg_hit_t *)s;
+	if (p->qns == q->qns) {
+		if (p->qe > q->qe) return -1;
+		else if (p->qe == q->qe) return 0;
+		else return 1;
+	} else if (p->qns > q->qns) return 1;
+	else return -1;
+}
+
+
 int cmp_q (const void *r, const void *s) 
 {
 	eg_hit_t *p = (eg_hit_t *)r;
@@ -284,20 +297,6 @@ int cmp_q (const void *r, const void *s)
 	} else if (pn > qn) return -1;
 	else return 1;
 
-	if (p->qns == q->qns) {
-		if (p->qe > q->qe) return -1;
-		else if (p->qe == q->qe) {
-			if (p->tns > q->tns) {
-				return 1;	
-			} else if (p->tns == q->tns){
-				if (p->te > q->te) return -1;
-				else if (p->te < q->te) return 1;
-				else return 0;	
-			} else
-			   return -1;	
-		} else return 1;
-	} else if (p->qns > q->qns) return 1;
-	else return -1;
 }
 
 /**
@@ -1489,7 +1488,7 @@ int main(int argc, char *argv[])
 	rhts->n = cleanup_hits(rhts->rht, rhts->n, sn);
 	double_hits(rhts);
 	//this part purge haplotigs again
-	qsort(rhts->rht, rhts->n, sizeof(eg_hit_t), cmp_q);	
+	qsort(rhts->rht, rhts->n, sizeof(eg_hit_t), cmp_q2);	
 	/*print_hits(rhts->rht, 0, rhts->n, sn, "bef");*/
 	flt_hits4(rhts->rht, rhts->n, sn);
 	rhts->n = cleanup_hits(rhts->rht, rhts->n, sn);
@@ -1504,7 +1503,7 @@ int main(int argc, char *argv[])
 	update_dup_cords(&dups, sn, dup_n);	
 	qsort(dups.a, dups.n, sizeof(dup_t), cmp_dupt);	
 	/*fprintf(stdout, "Before merging\n");*/
-	/*print_dups(&dups, dup_n);*/
+	print_dups(&dups, dup_n);
 	merge_dups(&dups);
 	/*fprintf(stdout, "After merging\n");*/
 	print_dups(&dups, dup_n);
