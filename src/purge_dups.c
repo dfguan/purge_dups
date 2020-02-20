@@ -255,10 +255,47 @@ int cmp_q (const void *r, const void *s)
 {
 	eg_hit_t *p = (eg_hit_t *)r;
 	eg_hit_t *q = (eg_hit_t *)s;
+	
+	uint32_t pn = p->qns >> 32;
+	uint32_t qn = q->qns >> 32;
+	if (pn == qn) {
+		uint32_t ptn = p->tns >> 32;
+		uint32_t qtn = q->tns >> 32;	
+		if (ptn > qtn) return -1;
+		else if (ptn == qtn) {
+			if (p->qns > q->qns) return 1;
+			else if (p->qns == q->qns) {
+				if (p->qe > q->qe) return -1;
+				else if (p->qe < q->qe) return 1;
+				else {
+					if (p->tns > q->tns) return 1;
+					else if (p->tns < q->tns) return -1;
+					else {
+						if (p->te > q->te) return -1;
+						else if (p->te < q->te) return 1;
+						else return 0;	
+					}
+				
+				}	
+			
+			} else return -1;
+		} 
+		else return 1;	
+	} else if (pn > qn) return -1;
+	else return 1;
+
 	if (p->qns == q->qns) {
 		if (p->qe > q->qe) return -1;
-		else if (p->qe == q->qe) return 0;
-		else return 1;
+		else if (p->qe == q->qe) {
+			if (p->tns > q->tns) {
+				return 1;	
+			} else if (p->tns == q->tns){
+				if (p->te > q->te) return -1;
+				else if (p->te < q->te) return 1;
+				else return 0;	
+			} else
+			   return -1;	
+		} else return 1;
 	} else if (p->qns > q->qns) return 1;
 	else return -1;
 }
@@ -1141,6 +1178,7 @@ int flt_hits4(eg_hit_t *rht, size_t n, sdict_t *sn)
 int flt_hits3(eg_hit_t *rht, size_t n, uint32_t *cutoffs, int usecuts, sdict_t *sn, dup_v *dups) 
 {
 	size_t i;
+	uint32_t low_cut = cutoffs[0];
 	uint32_t  dip_cut = cutoffs[3];
 	/*uint32_t high_cut = cutoffs[5];	*/
 	/*char *name;*/
@@ -1169,7 +1207,7 @@ int flt_hits3(eg_hit_t *rht, size_t n, uint32_t *cutoffs, int usecuts, sdict_t *
 	}
 	for ( i = 0; i < n ; ++i ) {
 		if (rht[i].qtg == 3 || rht[i].ttg == 3) continue; 
-		if (usecuts && (rht[i].qcov > dip_cut || rht[i].tcov > dip_cut)) 
+		if (usecuts && (rht[i].qcov > dip_cut || rht[i].tcov > dip_cut || rht[i].qcov < low_cut || rht[i].tcov < low_cut)) 
 			rht[i].del = 1;
 		else if (sn->seq[rht[i].qns >> 32].del || sn->seq[rht[i].tns>>32].del) 
 			rht[i].del = 1;
@@ -1429,6 +1467,7 @@ int main(int argc, char *argv[])
 		merge_segs(rhts->rht, rhts->idx, n_ind, max_gs, sn);
 		rhts->n = cleanup_hits(rhts->rht, rhts->n, sn);
 		qsort(rhts->rht, rhts->n, sizeof(eg_hit_t), cmp_q);	
+		/*print_hits(rhts->rht, 0, rhts->n, sn, "bf");*/
 		flt_hits(rhts->rht, rhts->n);
 		rhts->n = cleanup_hits(rhts->rht, rhts->n, sn);
 		max_gs = opts.max_gs2rd;
