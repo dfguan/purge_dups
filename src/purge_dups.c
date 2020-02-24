@@ -92,7 +92,7 @@ int print_hit(eg_hit_t *rht, sdict_t *tn)
 {
 	size_t i = 0;
 	/*fprintf(stderr, "Order: QID\tQLEN\tQS\tQE\tTID\tTLEN\tTS\tTE\n");*/
-	fprintf(stderr, "%s\t%u\t%u\t%u\t%c\t%s\t%u\t%u\t%u\t%d\t%d\n", tn->seq[rht[i].qns >> 32].name, rht[i].ql, (uint32_t)rht[i].qns, rht[i].qe, rht[i].rev?'-':'+', tn->seq[rht[i].tns>>32].name, rht[i].tl, (uint32_t) rht[i].tns , rht[i].te, rht[i].tail, rht[i].con);
+	fprintf(stderr, "%s\t%u\t%u\t%u\t%c\t%s\t%u\t%u\t%u\t%d\t%d\t%d\n", tn->seq[rht[i].qns >> 32].name, rht[i].ql, (uint32_t)rht[i].qns, rht[i].qe, rht[i].rev?'-':'+', tn->seq[rht[i].tns>>32].name, rht[i].tl, (uint32_t) rht[i].tns , rht[i].te, rht[i].tail, rht[i].con, rht[i].ml);
 	return 0;
 }
 /**
@@ -1503,7 +1503,7 @@ int main(int argc, char *argv[])
 	update_dup_cords(&dups, sn, dup_n);	
 	qsort(dups.a, dups.n, sizeof(dup_t), cmp_dupt);	
 	/*fprintf(stdout, "Before merging\n");*/
-	print_dups(&dups, dup_n);
+	/*print_dups(&dups, dup_n);*/
 	merge_dups(&dups);
 	/*fprintf(stdout, "After merging\n");*/
 	print_dups(&dups, dup_n);
