@@ -237,7 +237,7 @@ bin/purge_dups -2 -T cutoffs -c PB.base.cov $pri_asm.split.self.paf.gz > dups.be
 ### Step 3. Get purged primary and haplotig sequences from draft assembly. 
 
 ```
-bin/get_seqs dups.bed $pri_asm > purged.fa 2> hap.fa 
+bin/get_seqs dups.bed $pri_asm 
 ``` 
 
 ### Step 4. Merge hap.fa and $hap_asm and redo the above steps to get a decent haplotig set. 
