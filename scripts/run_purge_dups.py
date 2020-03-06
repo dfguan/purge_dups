@@ -285,7 +285,7 @@ def cont(config_fn, bin_dir, spid, pltfm, _wait, _retries):
         cur_d = config_dict["cc"]
         
         if cur_d["ispb"] == 1:
-            p = Process(target=cal_cov, args=(man, pltfm, purged_ref, cur_d["ispb"], cur_d["isdip"], cur_d["fofn"], cur_d["core"], cur_d["mem"], cur_d["queue"], cur_d["skip"], out_cov_dir, bin_dir, spid, 1))
+            p = Process(target=cal_cov, args=(man, pltfm, purged_ref, cur_d["ispb"], cur_d["isdip"], cur_d["fofn"], cur_d["core"], cur_d["mem"], cur_d["queue"], cur_d["mnmp_opt"], cur_d["bwa_opt"], cur_d["skip"], out_cov_dir, bin_dir, spid, 1))
             procs.append(p)
 
     if not rtn and "kcp" in config_dict:
