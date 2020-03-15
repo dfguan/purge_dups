@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
 	opt_t opts;
 	int c;
 	char *r;
-	opts.ml = 1000;
+	opts.ml = 10000;
 	opts.pref = 0;
 	opts.add_hap_pref = 1;
 	opts.mlp = 0.05;
@@ -279,7 +279,7 @@ help:
 				fprintf(stderr, "         -p    STR      prefix of output files [NULL]\n");	
 				fprintf(stderr, "         -c    BOOL     keep high coverage contigs in the primary contig set [FALSE]\n");	
 				fprintf(stderr, "         -a    BOOL     do not add prefix to haplotigs [FALSE]\n");	
-				fprintf(stderr, "         -l    INT      minimum primary contig length [1000]\n");	
+				fprintf(stderr, "         -l    INT      minimum primary contig length [10000]\n");	
 				fprintf(stderr, "         -m    INT      minimum ratio of remaining primary contig length to the original contig length [0.05]\n");	
 				fprintf(stderr, "         -h             help\n");
 				return 1;	
