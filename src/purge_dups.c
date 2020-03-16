@@ -83,7 +83,7 @@ int print_dups(dup_v *dups, sdict_t *dup_n)
 	size_t n = dups->n;
 	size_t i;
 	for ( i = 0; i < n; ++i ) 
-		~dp[i].psn ? fprintf(stdout, "%s\t%u\t%u\t%s\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].psn].name): fprintf(stdout, "%s\t%u\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp]);
+		~dp[i].psn ? fprintf(stdout, "%s\t%u\t%u\t%s\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s - 1, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].psn].name): fprintf(stdout, "%s\t%u\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp]);
 	return 0;
 }
 
