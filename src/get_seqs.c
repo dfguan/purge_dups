@@ -54,7 +54,7 @@ int print_dups2(dup_t *dups, size_t n, char *name)
 	dup_t *dp = dups;
 	size_t i;
 	for ( i = 0; i < n; ++i ) 
-		fprintf(stdout, "%s\t%u\t%u\n", name, dp[i].s, dp[i].e);
+		fprintf(stderr, "%s\t%u\t%u\t%s\n", name, dp[i].s, dp[i].e, ~dp[i].tp ? dup_type_s[dp[i].tp] : "0");
 	return 0;
 }
 int which_tp(char *tp)
@@ -99,7 +99,7 @@ int dup_idx(dup_v dups, uint64_t *idx)
 	return 0;
 }
 
-int col_dups(char *fn, sdict_t *sn, dup_v *dups, uint32_t gs4dup)
+int col_dups(char *fn, sdict_t *sn, dup_v *dups)
 {
 	kstream_t *ks;
 	gzFile fp;
@@ -117,69 +117,75 @@ int col_dups(char *fn, sdict_t *sn, dup_v *dups, uint32_t gs4dup)
 		if (!name || strcmp(name, d.name)) {
 			if (name) { 
 				free(name);
-				kv_push(dup_t, *dups, t);	
 				dup_t t = (dup_t){rid, 0, 0, -1}; // add an end to the previous contig
 				kv_push(dup_t, *dups, t);	
 			}
 			name = strdup(d.name);	
 			rid = sd_put(sn, name, 0, 1);	
 			t = (dup_t){rid, 0, 0, -1}; //add a start to the current contig
-			/*kv_push(dup_t, *dups, t);	*/
-		}
-		if (d.s - t.e < gs4dup) 
-			t.e = d.e, t.tp = which_tp(d.tp);
-		else {
 			kv_push(dup_t, *dups, t);	
-			t = (dup_t){rid, d.s, d.e, which_tp(d.tp)}; 
 		}
-		/*dup_t k = (dup_t) {rid, d.s, d.e, which_tp(d.tp)};*/
+		t = (dup_t) {rid, d.s, d.e, which_tp(d.tp)};
+		kv_push(dup_t, *dups, t);	
 	}
-	kv_push(dup_t, *dups, t);
 	t = (dup_t) {rid, 0, 0, -1}; // add an end to the final contig
 	kv_push(dup_t, *dups, t);	
 	return 0;
 }
 
-int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml, FILE *hp, FILE* pp, int ahp, float mlp, int kh)
+int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml, FILE *hp, FILE* pp, int ahp, float mlp, int kh, uint32_t gs4dup)
 {
 	//stop here, don't know how to get 
-	size_t i;
+	size_t i, j;
 	if (n <= 2) {
 		fprintf(pp, ">%s\n%s\n", name, s);	
 		return 0;			
 	}
 	dp[n-1].s = dp[n-1].e = l;
-	/*print_dups2(dp, n, name);*/
+	//merge dups
+	for (i = 1, j = 0; i <= n; ++i) {
+		if (i == n) { ++j; break;}
+		if (dp[i].s < dp[j].e + gs4dup) {
+			dp[j].e = dp[i].e; 
+			if (~dp[i].tp)	dp[j].tp = dp[i].tp;		
+		} else 
+			dp[++j] = dp[i]; 	
+	}
+	/*print_dups2(dp, j, name);*/
 	/*char *seq = malloc(sizeof(char) * (l + 1 + (n-2) * 200));*/
 	char *seq = malloc(sizeof(char) * (l + 1 + (n-2) * 200));
 	char *hapseq = malloc(sizeof(char) * (l + 1 + (n-2) * 200));
 	uint32_t poi = 0;
-	for ( i = 0; i < n - 1; ++i) {
+	for ( i = 0; i + 1 < j; ++i) {
 		uint32_t st, ed;
 		st = dp[i].e;
 		ed = dp[i+1].s;
-		memcpy(seq + poi, s + st, ed - st);		
-		poi += (ed - st);
-		if (i != n - 2)	{
-			memset(seq + poi, 'N', 23); 	
-			poi += 23;
+		if (ed - st) {
+			if (poi)	{
+				memset(seq + poi, 'N', 23); 	
+				poi += 23;
+			}  
+			memcpy(seq + poi, s + st, ed - st);		
+			poi += (ed - st);
+			seq[poi] = 0;
 		}
-		seq[poi] = 0;
 	}
 	uint32_t happoi = 0;
 	uint32_t tp = UNKNOWN;
-	for (i = 0; i < n - 1; ++i) {
+	for (i = 0; i < j ; ++i) {
 		uint32_t st, ed;
 		st = dp[i].s;
 		ed = dp[i].e;
-		tp = dp[i].tp;
-		memcpy(hapseq + happoi, s + st, ed - st);	
-		happoi += (ed - st);
-		if (i != n - 2 && happoi)	{
-			memset(hapseq + happoi, 'N', 23); 	
-			happoi += 23;
+		if (ed - st) {
+			tp = dp[i].tp;
+			if (happoi)  {
+				memset(hapseq + happoi, 'N', 23); 	
+				happoi += 23;
+			} 
+			memcpy(hapseq + happoi, s + st, ed - st);	
+			happoi += (ed - st);
+			hapseq[happoi] = 0;
 		}
-		hapseq[happoi] = 0;
 	}	
 	if (poi > ml && (float) poi / l > mlp) {
 		fprintf(pp, ">%s\n%s\n", name, seq);
@@ -204,7 +210,7 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 }
 
 
-int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml, char *outpref, int ahp, float mlp, int kh)
+int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml, char *outpref, int ahp, float mlp, int kh, uint32_t gs4dup)
 {
 	gzFile fp;
 	kseq_t *seq;
@@ -227,9 +233,9 @@ int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml, ch
 	FILE *purged_fp = fopen(pur_fn, "w");
 	while (kseq_read(seq) >= 0) {
 		if (~(sid = sd_get(sn, seq->name.s))) {
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml, hap_fp, purged_fp, ahp, mlp, kh);
+			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml, hap_fp, purged_fp, ahp, mlp, kh, gs4dup);
 		} else 
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml, hap_fp, purged_fp, ahp, mlp, kh);
+			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml, hap_fp, purged_fp, ahp, mlp, kh, gs4dup);
 	} 
  	//add some basic statistics maybe 		
 	kseq_destroy(seq);
@@ -293,7 +299,7 @@ help:
 				fprintf(stderr, "         -c    BOOL     keep high coverage contigs in the primary contig set [FALSE]\n");	
 				fprintf(stderr, "         -a    BOOL     do not add prefix to haplotigs [FALSE]\n");	
 				fprintf(stderr, "         -g    INT      maximum gap size between duplications [10k]\n");	
-				fprintf(stderr, "         -l    INT      minimum primary contig length [10000]\n");	
+				fprintf(stderr, "         -l    INT      minimum primary contig length [10k]\n");	
 				fprintf(stderr, "         -m    INT      minimum ratio of remaining primary contig length to the original contig length [0.05]\n");	
 				fprintf(stderr, "         -h             help\n");
 				return 1;	
@@ -307,12 +313,12 @@ help:
 	opts.fafn = argv[optind];
 	sdict_t *sn = sd_init();
 	dup_v dups = {0, 0, 0};	
-	col_dups(opts.dup_fn, sn, &dups, opts.gs4dup);	
+	col_dups(opts.dup_fn, sn, &dups);	
 	/*print_dups(&dups, sn);*/
 	uint64_t *idx = malloc(sizeof(uint64_t) * sn->n_seq);
 	dup_idx(dups, idx);
-	print_dups(dups.a, dups.n, sn);
-	/*get_seqs(opts.fafn, dups, idx, sn, opts.ml, opts.pref, opts.add_hap_pref, opts.mlp, opts.kh);*/
+	/*print_dups(dups.a, dups.n, sn);*/
+	get_seqs(opts.fafn, dups, idx, sn, opts.ml, opts.pref, opts.add_hap_pref, opts.mlp, opts.kh, opts.gs4dup);
 	free(idx);
 	return 0;		
 }
