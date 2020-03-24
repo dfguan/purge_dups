@@ -38,6 +38,16 @@ typedef struct {
 	uint32_t s,e;
 }dup_s;
 
+typedef struct {
+	char		*dup_fn;
+	char		*fafn;
+	char		*pref;
+	uint32_t	ml;
+	int			add_hap_pref;
+	float		mlp;
+	int			gs4dup;
+	int			kh, skipm;
+} opt_t;
 
 typedef struct {size_t n, m; dup_t *a;} dup_v;
 
@@ -133,7 +143,7 @@ int col_dups(char *fn, sdict_t *sn, dup_v *dups)
 	return 0;
 }
 
-int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml, FILE *hp, FILE* pp, int ahp, float mlp, int kh, uint32_t gs4dup)
+int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml, FILE *hp, FILE* pp, int ahp, float mlp, int kh, uint32_t gs4dup, int skipm)
 {
 	//stop here, don't know how to get 
 	size_t i, j;
@@ -151,6 +161,17 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 		} else 
 			dp[++j] = dp[i]; 	
 	}
+	//skip middle of contigs
+	if (skipm) {
+		size_t z;
+		for ( i = 0, z = 0; i < j; ++i) {
+			if (dp[i].s == 0 || dp[i].e == l)	
+				dp[z++] = dp[i];	
+			else fprintf(stderr, "[W::%s] %s %u %u is skipped\n",__func__, name, dp[i].s, dp[i].e);
+		}  
+		j = z;
+	}
+
 	/*print_dups2(dp, j, name);*/
 	/*char *seq = malloc(sizeof(char) * (l + 1 + (n-2) * 200));*/
 	char *seq = malloc(sizeof(char) * (l + 1 + (n-2) * 200));
@@ -210,8 +231,17 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 }
 
 
-int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml, char *outpref, int ahp, float mlp, int kh, uint32_t gs4dup)
+int get_seqs(opt_t *opts, dup_v dups, uint64_t *idx, sdict_t *sn)
 {
+	char *fafn = opts->fafn;
+	uint32_t ml = opts->ml;
+	char *outpref = opts->pref;
+	int ahp = opts->add_hap_pref;
+	float mlp = opts->mlp;
+	int kh = opts->kh;
+	uint32_t gs4dup = opts->gs4dup;
+	int skipm = opts->skipm;	
+	
 	gzFile fp;
 	kseq_t *seq;
 	/*fp = gzdopen(fileno(stdin), "r");*/
@@ -233,9 +263,9 @@ int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml, ch
 	FILE *purged_fp = fopen(pur_fn, "w");
 	while (kseq_read(seq) >= 0) {
 		if (~(sid = sd_get(sn, seq->name.s))) {
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml, hap_fp, purged_fp, ahp, mlp, kh, gs4dup);
+			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml, hap_fp, purged_fp, ahp, mlp, kh, gs4dup, skipm);
 		} else 
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml, hap_fp, purged_fp, ahp, mlp, kh, gs4dup);
+			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml, hap_fp, purged_fp, ahp, mlp, kh, gs4dup, skipm);
 	} 
  	//add some basic statistics maybe 		
 	kseq_destroy(seq);
@@ -245,16 +275,6 @@ int get_seqs(char *fafn, dup_v dups, uint64_t *idx, sdict_t *sn, uint32_t ml, ch
 	fclose(purged_fp);
 	return 0;
 }
-typedef struct {
-	char		*dup_fn;
-	char		*fafn;
-	char		*pref;
-	uint32_t	ml;
-	int			add_hap_pref;
-	float		mlp;
-	int			gs4dup;
-	int			kh;
-} opt_t;
 
 //this bed file is sorted by name
 int main(int argc, char *argv[])
@@ -266,12 +286,15 @@ int main(int argc, char *argv[])
 	opts.pref = 0;
 	opts.add_hap_pref = 1;
 	opts.mlp = 0.05;
-	opts.kh = 0;
+	opts.kh = 0, opts.skipm = 0;
 	opts.gs4dup = 10000;
 	char *program;
    	(program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-	while (~(c=getopt(argc, argv, "ap:cm:l:g:h"))) {
+	while (~(c=getopt(argc, argv, "ap:cm:l:g:he"))) {
 		switch (c) {
+			case 'e': 
+				opts.skipm = 1;
+				break;
 			case 'p': 
 				opts.pref = optarg;
 				break;
@@ -295,6 +318,7 @@ int main(int argc, char *argv[])
 help:	
 				fprintf(stderr, "\nUsage: %s  [<options>] <DUPs.BED> <FASTA> \n", program);
 				fprintf(stderr, "Options:\n");
+				fprintf(stderr, "         -e    BOOL     only remove sequences at the ends of a contig [FALSE]\n");	
 				fprintf(stderr, "         -p    STR      prefix of output files [NULL]\n");	
 				fprintf(stderr, "         -c    BOOL     keep high coverage contigs in the primary contig set [FALSE]\n");	
 				fprintf(stderr, "         -a    BOOL     do not add prefix to haplotigs [FALSE]\n");	
@@ -318,7 +342,10 @@ help:
 	uint64_t *idx = malloc(sizeof(uint64_t) * sn->n_seq);
 	dup_idx(dups, idx);
 	/*print_dups(dups.a, dups.n, sn);*/
-	get_seqs(opts.fafn, dups, idx, sn, opts.ml, opts.pref, opts.add_hap_pref, opts.mlp, opts.kh, opts.gs4dup);
+	/*get_seqs(opts.fafn, dups, idx, sn, opts.ml, opts.pref, opts.add_hap_pref, opts.mlp, opts.kh, opts.gs4dup);*/
+	get_seqs(&opts, dups, idx, sn);
+	kv_destroy(dups);
+	sd_destroy(sn);
 	free(idx);
 	return 0;		
 }
