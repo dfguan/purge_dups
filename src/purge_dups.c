@@ -883,6 +883,14 @@ int purge_contigs(eg_hits_t *rhts, sdict_t *sn, dup_v *dups, uint32_t ctg_gap)
 	return 0;
 }
 
+int flt_hits_by_ql(eg_hit_t *rht, size_t n, uint32_t min_len)
+{
+	size_t i;
+	for ( i = 0; i < n; ++i ) 
+		if (rht[i].qe - (uint32_t)rht[i].qns < min_len) 
+			rht[i].del = 1;
+	return 0;
+}
 int flt_hits_by_ml(eg_hit_t *rht, size_t n, uint32_t min_len)
 {
 	size_t i;
@@ -1453,7 +1461,7 @@ int main(int argc, char *argv[])
 		rhts->n = cleanup_hits(rhts->rht, rhts->n, sn);
 	}  
 	//merge left hits
-	flt_hits_by_ml(rhts->rht, rhts->n, opts.min_bl);
+	flt_hits_by_ql(rhts->rht, rhts->n, opts.min_bl);
 	rhts->n = cleanup_hits(rhts->rht, rhts->n, sn);
 	
 	size_t rnd = opts.sr ? 2 : 1;

@@ -55,7 +55,7 @@ int parse_args(int argc, char *argv[], opt *o)
 {
 	o->max_gs = 20000;
 	o->max_gs2rd = 50000;
-	o->min_bl = 500; // mislabeled should be ml
+	o->min_bl = 1000; // mislabeled should be ml
 	o->max_ext = 15000;
 	o->min_dup_bl = 10000;
 	o->s2s = 1;
