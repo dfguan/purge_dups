@@ -271,10 +271,10 @@ def cont(config_fn, bin_dir, spid, pltfm, _wait, _retries):
         rtn = get_seqs(man, pltfm, ref, in_dups_fn, 1, gs_mem, out_dir, bin_dir, spid) 
     
     procs = [] 
+    workdir = out_dir
     if "busco" in config_dict and not rtn:
         cur_d = config_dict["busco"]
         fasta = "{}.purged.fa".format(get_lm_prefix(ref))
-        workdir = out_dir
         
         p = Process(target=run_busco, args=(man, pltfm, cur_d["skip"], workdir, spid, fasta, cur_d["mem"], cur_d["core"], cur_d["queue"], cur_d["prefix"], cur_d["lineage"], cur_d["tmpdir"]))
         procs.append(p)
