@@ -46,7 +46,7 @@ typedef struct {
 	int			add_hap_pref;
 	float		mlp;
 	int			gs4dup;
-	int			kh, skipm;
+	int			kh, skipm, split;
 } opt_t;
 
 typedef struct {size_t n, m; dup_t *a;} dup_v;
@@ -143,12 +143,15 @@ int col_dups(char *fn, sdict_t *sn, dup_v *dups)
 	return 0;
 }
 
-int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml, FILE *hp, FILE* pp, int ahp, float mlp, int kh, uint32_t gs4dup, int skipm)
+int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_t ml, FILE *hp, FILE* pp, int ahp, float mlp, int kh, uint32_t gs4dup, int skipm, int split)
 {
 	//stop here, don't know how to get 
 	size_t i, j;
 	if (n <= 2) {
-		fprintf(pp, ">%s\n%s\n", name, s);	
+		if (split)
+			fprintf(pp, ">%s_1\n%s\n", name, s);	
+		else
+			fprintf(pp, ">%s\n%s\n", name, s);	
 		return 0;			
 	}
 	dp[n-1].s = dp[n-1].e = l;
@@ -177,20 +180,36 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 	char *seq = malloc(sizeof(char) * (l + 1 + (n-2) * 200));
 	char *hapseq = malloc(sizeof(char) * (l + 1 + (n-2) * 200));
 	uint32_t poi = 0;
+	kvec_t(uint32_t) poilist; 
+	kv_init(poilist);
+	
+
 	for ( i = 0; i + 1 < j; ++i) {
 		uint32_t st, ed;
 		st = dp[i].e;
 		ed = dp[i+1].s;
 		if (ed - st) {
 			if (poi)	{
-				memset(seq + poi, 'N', 23); 	
-				poi += 23;
-			}  
+				if (split) {
+					memset(seq + poi, 0, 23);
+					poi += 23;
+					kv_push(uint32_t, poilist,poi);
+				} else {
+					memset(seq + poi, 'N', 23); 	
+					poi += 23;
+				} 
+			} else {
+				kv_push(uint32_t, poilist, poi);
+			} 
 			memcpy(seq + poi, s + st, ed - st);		
 			poi += (ed - st);
 			seq[poi] = 0;
 		}
 	}
+	
+	kvec_t(uint32_t) happoilist; 
+	kv_init(happoilist);
+
 	uint32_t happoi = 0;
 	uint32_t tp = UNKNOWN;
 	for (i = 0; i < j ; ++i) {
@@ -199,34 +218,69 @@ int get_seqs_core(char *name, char *s, uint32_t l, dup_t  *dp, size_t n, uint32_
 		ed = dp[i].e;
 		if (ed - st) {
 			tp = dp[i].tp;
-			if (happoi)  {
-				memset(hapseq + happoi, 'N', 23); 	
-				happoi += 23;
-			} 
+			if (happoi) {
+				if (split) {
+					memset(hapseq + happoi, 0, 23); 	
+					happoi += 23;
+					kv_push(uint32_t, happoilist, happoi);
+				} else {
+					memset(hapseq + happoi, 'N', 23); 	
+					happoi += 23;
+				}			
+			
+			} else 
+				kv_push(uint32_t, happoilist, happoi);
 			memcpy(hapseq + happoi, s + st, ed - st);	
 			happoi += (ed - st);
 			hapseq[happoi] = 0;
 		}
 	}	
 	if (poi > ml && (float) poi / l > mlp) {
-		fprintf(pp, ">%s\n%s\n", name, seq);
-		if (ahp) 
-			fprintf(hp, ">hap_%s %s\n%s\n", name, dup_type_s[tp], hapseq);
-		else 
-			fprintf(hp, ">%s %s\n%s\n", name, dup_type_s[tp], hapseq);
+		if (split) {
+			for ( i = 0; i < poilist.n; ++i ) 
+				fprintf(pp, ">%s_%u\n%s\n", name, i + 1, seq + poilist.a[i]);
+			
+			for ( i = 0; i < happoilist.n; ++i ) 
+				if (ahp) 
+					fprintf(hp, ">hap_%s_%u %s\n%s\n", name, i + 1, dup_type_s[tp], hapseq + happoilist.a[i]);
+				else 
+					fprintf(hp, ">%s_%u %s\n%s\n", name, i + 1, dup_type_s[tp], hapseq + happoilist.a[i]);
+		
+		} else {
+			fprintf(pp, ">%s\n%s\n", name, seq);
+			if (happoi) {
+				if (ahp) 
+					fprintf(hp, ">hap_%s %s\n%s\n", name, dup_type_s[tp], hapseq);
+				else 
+					fprintf(hp, ">%s %s\n%s\n", name, dup_type_s[tp], hapseq);
+			}
+		}
 	} else {
 		/*fprintf(stderr, "Name %s KH: %d\tTP: %d, HIGH: %d\n", name, kh, tp, HIGH);*/
-		if (kh && tp == HIGH) 
-			fprintf(pp, ">%s %s\n%s\n", name, dup_type_s[tp], s);
-		else {
-			if (ahp) 	
-				fprintf(hp, ">hap_%s %s\n%s\n", name, dup_type_s[tp], s);
-			else
-				fprintf(hp, ">%s %s\n%s\n", name, dup_type_s[tp], s);
-		}	
+		if (split) {
+			if (kh && tp == HIGH) 
+				fprintf(pp, ">%s_1 %s\n%s\n", name, dup_type_s[tp], s);
+			else {
+				if (ahp) 	
+					fprintf(hp, ">hap_%s_1 %s\n%s\n", name, dup_type_s[tp], s);
+				else
+					fprintf(hp, ">%s_1 %s\n%s\n", name, dup_type_s[tp], s);
+			}	
+		} else {
+			if (kh && tp == HIGH) 
+				fprintf(pp, ">%s %s\n%s\n", name, dup_type_s[tp], s);
+			else {
+				if (ahp) 	
+					fprintf(hp, ">hap_%s %s\n%s\n", name, dup_type_s[tp], s);
+				else
+					fprintf(hp, ">%s %s\n%s\n", name, dup_type_s[tp], s);
+			}	
+		}
 	}
 	free(seq);
 	free(hapseq);
+	kv_destroy(poilist);
+	kv_destroy(happoilist);
 	return 0;
 }
 
@@ -241,7 +295,7 @@ int get_seqs(opt_t *opts, dup_v dups, uint64_t *idx, sdict_t *sn)
 	int kh = opts->kh;
 	uint32_t gs4dup = opts->gs4dup;
 	int skipm = opts->skipm;	
-	
+	int split = opts->split;	
 	gzFile fp;
 	kseq_t *seq;
 	/*fp = gzdopen(fileno(stdin), "r");*/
@@ -263,9 +317,9 @@ int get_seqs(opt_t *opts, dup_v dups, uint64_t *idx, sdict_t *sn)
 	FILE *purged_fp = fopen(pur_fn, "w");
 	while (kseq_read(seq) >= 0) {
 		if (~(sid = sd_get(sn, seq->name.s))) {
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml, hap_fp, purged_fp, ahp, mlp, kh, gs4dup, skipm);
+			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, &dp[(idx[sid] >> 32)], (uint32_t)idx[sid], ml, hap_fp, purged_fp, ahp, mlp, kh, gs4dup, skipm, split);
 		} else 
-			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml, hap_fp, purged_fp, ahp, mlp, kh, gs4dup, skipm);
+			get_seqs_core(seq->name.s, seq->seq.s, seq->seq.l, 0, 0, ml, hap_fp, purged_fp, ahp, mlp, kh, gs4dup, skipm, split);
 	} 
  	//add some basic statistics maybe 		
 	kseq_destroy(seq);
@@ -286,14 +340,18 @@ int main(int argc, char *argv[])
 	opts.pref = 0;
 	opts.add_hap_pref = 1;
 	opts.mlp = 0.05;
-	opts.kh = 0, opts.skipm = 0;
+	opts.kh = 0, opts.skipm = 0, opts.split = 0;
 	opts.gs4dup = 10000;
 	char *program;
    	(program = strrchr(argv[0], '/')) ? ++program : (program = argv[0]);
-	while (~(c=getopt(argc, argv, "ap:cm:l:g:he"))) {
+	while (~(c=getopt(argc, argv, "ap:cm:l:g:hes"))) {
 		switch (c) {
 			case 'e': 
 				opts.skipm = 1;
+				opts.split = 1;
+				break;
+			case 's': 
+				opts.split = 1;
 				break;
 			case 'p': 
 				opts.pref = optarg;
@@ -319,6 +377,7 @@ help:
 				fprintf(stderr, "\nUsage: %s  [<options>] <DUPs.BED> <FASTA> \n", program);
 				fprintf(stderr, "Options:\n");
 				fprintf(stderr, "         -e    BOOL     only remove sequences at the ends of a contig [FALSE]\n");	
+				fprintf(stderr, "         -s    BOOL     split contigs [FALSE]\n");	
 				fprintf(stderr, "         -p    STR      prefix of output files [NULL]\n");	
 				fprintf(stderr, "         -c    BOOL     keep high coverage contigs in the primary contig set [FALSE]\n");	
 				fprintf(stderr, "         -a    BOOL     do not add prefix to haplotigs [FALSE]\n");	
