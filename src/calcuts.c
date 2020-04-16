@@ -268,7 +268,6 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 	/*fprintf(stderr, "After Processing\n");*/
 	//sort and output	
 	if (locopts.n >= 3) {
-		peakn = 0;
 		/*int mean = get_mean(depth2cnt);*/
 		/*fprintf(stderr, "%d\n", mean);*/
 		//merge near values	
@@ -292,10 +291,14 @@ int calcuts(uint32_t *depth2cnt, int *cutoffs, int min_mc, float min_frac, int f
 					if (derts1_fit[is] < 0) 
 						locopts.a[i].ispeak = 0;
 					else
-						++peakn, locopts.a[i].ispeak = 1;
+						locopts.a[i].ispeak = 1;
 				} else 
 					locopts.a[i].del = 1; // is local peaks  
 		}
+		
+		peakn = 0;
+		for (i = 0; i < locopts.n; ++i) 
+			if (!locopts.a[i].del && locopts.a[i].ispeak) ++peakn;
 		fprintf(stderr, "[M::%s] Merge local peaks and valleys: %d peaks remain\n", __func__, peakn);
 		//would not like any peak/valleys less than LOWEST_CUT
 		for ( i = 0; i < locopts.n; ++i) 
