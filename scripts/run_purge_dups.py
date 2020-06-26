@@ -35,7 +35,7 @@ def get_lm_prefix(p): # a.b.c.d return a
 def split_aln(man, pltfm, ref, core_lim, mem_lim, queue, out_dir, bin_dir, spid):
     mkdir(out_dir)
     
-    out_fn = "{0}/{1}.split.fa".format(out_dir, get_lm_prefix(ref))
+    out_fn = "{0}/{1}.split.fa".format(out_dir, get_rm_prefix(ref))
     jcmd = "{0}/split_fa {1} > {2}".format(bin_dir, ref, out_fn)
     jjn = "split_{}".format(spid)
     jout = "{0}/{1}_%J.o".format(out_dir, jjn)
@@ -45,7 +45,7 @@ def split_aln(man, pltfm, ref, core_lim, mem_lim, queue, out_dir, bin_dir, spid)
     rtn = man.start([j])
     if not rtn:
         in_fn = out_fn
-        out_fn = "{0}/{1}.split.paf".format(out_dir, get_lm_prefix(ref))
+        out_fn = "{0}/{1}.split.paf".format(out_dir, get_rm_prefix(ref))
         jcmd = "minimap2 -xasm5 -DP {0} {0} > {1}".format(in_fn, out_fn)
         jjn = "self_aln_{}".format(spid)
         jout = "{0}/{1}_%J.o".format(out_dir, jjn)
@@ -72,9 +72,9 @@ def purge_dups(man, pltfm, paf_fn, base_cov_fn, cutoff_fn, core_lim, mem_lim, qu
 #INPUT: dups assembly
 def get_seqs(man, pltfm, ref, dups_fn, core_lim, mem_lim, out_dir, bin_dir, spid):
     mkdir(out_dir) 
-    out_fn = "{0}/{1}.purged.fa".format(out_dir, get_lm_prefix(ref)) 
-    out_red_fn = "{0}/{1}.red.fa".format(out_dir, get_lm_prefix(ref))
-    out_prefx="{0}/{1}".format(out_dir, get_lm_prefix(ref))
+    out_fn = "{0}/{1}.purged.fa".format(out_dir, get_rm_prefix(ref)) 
+    out_red_fn = "{0}/{1}.red.fa".format(out_dir, get_rm_prefix(ref))
+    out_prefx="{0}/{1}".format(out_dir, get_rm_prefix(ref))
     jcmd = "{0}/get_seqs -p {5} {1} {2}".format(bin_dir, dups_fn, ref, out_fn, out_red_fn, out_prefx)
     jjn = "get_seqs_{}".format(spid)
     jout = "{0}/{1}_%J.o".format(out_dir, jjn)
@@ -117,7 +117,7 @@ def cal_cov(man, pltfm, ref, ispb, isdip, fofn, core_lim, mem_lim, queue, mnmp_o
         for fl in f:
             fl_strip = fl.strip()
             if ispb:
-                fn_prefix = get_lm_prefix(getfn(fl_strip))
+                fn_prefix = get_rm_prefix(getfn(fl_strip))
                 out_fn = "{0}/{1}.paf".format(out_dir, fn_prefix)
                 out_fns.append(out_fn)
                 idx_opt = "-I {}".format("4G" if os.path.getsize(ref) < 4e9 else "10G")
@@ -132,7 +132,7 @@ def cal_cov(man, pltfm, ref, ispb, isdip, fofn, core_lim, mem_lim, queue, mnmp_o
                 jobs.append(j)
             else:
                 [r1, r2] = fl_strip.split('\t')
-                fn_prefix = get_lm_prefix(getfn(r1))
+                fn_prefix = get_rm_prefix(getfn(r1))
                 out_fn = "{0}/{1}.bam".format(out_dir, fn_prefix)
                 out_fns.append(out_fn)
                 if bwa_opt != "":
@@ -222,7 +222,7 @@ def cont(config_fn, bin_dir, spid, pltfm, _wait, _retries):
     out_dir = config_dict["out_dir"]
     ref = config_dict["ref"]
     
-    ref_pref = get_lm_prefix(ref)
+    ref_pref = get_rm_prefix(ref)
 
     mkdir(out_dir)
 
@@ -274,7 +274,7 @@ def cont(config_fn, bin_dir, spid, pltfm, _wait, _retries):
     workdir = out_dir
     if "busco" in config_dict and not rtn:
         cur_d = config_dict["busco"]
-        fasta = "{}.purged.fa".format(get_lm_prefix(ref))
+        fasta = "{}.purged.fa".format(get_rm_prefix(ref))
         
         p = Process(target=run_busco, args=(man, pltfm, cur_d["skip"], workdir, spid, fasta, cur_d["mem"], cur_d["core"], cur_d["queue"], cur_d["prefix"], cur_d["lineage"], cur_d["tmpdir"]))
         procs.append(p)
