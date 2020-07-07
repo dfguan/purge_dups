@@ -239,7 +239,7 @@ bin/purge_dups -2 -T cutoffs -c PB.base.cov $pri_asm.split.self.paf.gz > dups.be
 ```
 bin/get_seqs dups.bed $pri_asm 
 ``` 
-This command will remove both haplotypic duplications at the ends or in the middle of the contigs. If you just want to remove the duplications at the ends, please use `-e` option. For more options, please refer to `get_seqs -h`.
+**Notice** this command will remove haplotypic duplications at the ends and in the middle of the contigs. If you just want to remove the duplications at the ends, please use `-e` option. For more options, please refer to `get_seqs -h`.
 
 ### Step 4. Merge hap.fa and $hap_asm and redo the above steps to get a decent haplotig set. 
 
