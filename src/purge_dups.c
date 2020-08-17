@@ -83,8 +83,15 @@ int print_dups(dup_v *dups, sdict_t *dup_n)
 	dup_t *dp = dups->a;
 	size_t n = dups->n;
 	size_t i;
-	for ( i = 0; i < n; ++i ) 
-		~dp[i].psn ? fprintf(stdout, "%s\t%u\t%u\t%s\t%s\t%u\t%u\n", dup_n->seq[dp[i].sn].name, dp[i].s - 1, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].psn].name, dp[i].ps - 1, dp[i].pe): fprintf(stdout, "%s\t%u\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp]);
+	for ( i = 0; i < n; ++i ) {
+		if (~dp[i].psn && dp[i].tp == OVLP) 
+			fprintf(stdout, "%s\t%u\t%u\t%s\t%s\t%u\t%u\n", dup_n->seq[dp[i].sn].name, dp[i].s - 1, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].psn].name, dp[i].ps - 1, dp[i].pe); 
+		else if (~dp[i].psn) 
+			fprintf(stdout, "%s\t%u\t%u\t%s\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s - 1, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].psn].name);
+		else
+			fprintf(stdout, "%s\t%u\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp]);
+	}
+		/*~dp[i].psn ? fprintf(stdout, "%s\t%u\t%u\t%s\t%s\t%u\t%u\n", dup_n->seq[dp[i].sn].name, dp[i].s - 1, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].psn].name, dp[i].ps - 1, dp[i].pe): */
 	return 0;
 }
 
