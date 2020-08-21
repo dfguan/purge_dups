@@ -84,10 +84,10 @@ int print_dups(dup_v *dups, sdict_t *dup_n)
 	size_t n = dups->n;
 	size_t i;
 	for ( i = 0; i < n; ++i ) {
-		if (~dp[i].psn && dp[i].tp == OVLP) 
+		if (~dp[i].psn) 
 			fprintf(stdout, "%s\t%u\t%u\t%s\t%s\t%u\t%u\n", dup_n->seq[dp[i].sn].name, dp[i].s - 1, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].psn].name, dp[i].ps - 1, dp[i].pe); 
-		else if (~dp[i].psn) 
-			fprintf(stdout, "%s\t%u\t%u\t%s\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s - 1, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].psn].name);
+		/*else if (~dp[i].psn) */
+			/*fprintf(stdout, "%s\t%u\t%u\t%s\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s - 1, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].psn].name);*/
 		else
 			fprintf(stdout, "%s\t%u\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp]);
 	}
@@ -1342,8 +1342,8 @@ int update_dup_cords(dup_v *dups, sdict_t *sn, sdict_t *dup_n)
 			idx = sd_put(dup_n, nt.ctgn, 0, 1);
 			name[nt.nl] = ':';
 			dp[i].psn = idx;	
-			dp[i].ps = nt.s + dp[i].ps - 1;
-			dp[i].pe = nt.e + dp[i].pe - 1;
+			dp[i].ps = dp[i].tp == OVLP ? nt.s + dp[i].ps - 1 : nt.s - 1;
+			dp[i].pe = dp[i].tp == OVLP ? nt.s + dp[i].pe - 1 : nt.e - 1;
 		}
 	}
 	return 0;	
