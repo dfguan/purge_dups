@@ -1342,8 +1342,8 @@ int update_dup_cords(dup_v *dups, sdict_t *sn, sdict_t *dup_n)
 			idx = sd_put(dup_n, nt.ctgn, 0, 1);
 			name[nt.nl] = ':';
 			dp[i].psn = idx;	
-			dp[i].ps = dp[i].tp == OVLP ? nt.s + dp[i].ps - 1 : nt.s - 1;
-			dp[i].pe = dp[i].tp == OVLP ? nt.s + dp[i].pe - 1 : nt.e - 1;
+			dp[i].ps = dp[i].tp == OVLP ? nt.s + dp[i].ps - 1 : nt.s;
+			dp[i].pe = dp[i].tp == OVLP ? nt.s + dp[i].pe - 1 : nt.e;
 		}
 	}
 	return 0;	
