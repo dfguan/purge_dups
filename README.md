@@ -15,8 +15,8 @@ purge haplotigs and overlaps in an assembly based on read depth
 - src/ngstat: create read depth histogram and base-level read detph for an assembly based on illumina data.
 - src/calcuts: calculate coverage cutoffs.
 - src/purge_dups: purge haplotigs and overlaps for an assembly.
-- src/get_seqs: obtain seqeuences after purging. 
-- bin/\* : all purge_dups excutables.
+- src/get_seqs: obtain sequences after purging. 
+- bin/\* : all purge_dups executables.
 
 ## Overview
 
@@ -37,7 +37,7 @@ You can follow the [Usage](#usg) part and use our pipeline to purge your assembl
 
 
 ## Installation
-Run the following commands to intall purge_dups (required):
+Run the following commands to install purge_dups (required):
 
 ```
 git clone https://github.com/dfguan/purge_dups.git
@@ -50,7 +50,7 @@ Run the following commands to install runner (optional), this is only needed whe
 git clone https://github.com/dfguan/runner.git
 cd runner && python3 setup.py install --user
 ```
-If you also want to try k-mer comparision plot, run the following commands to install the tool (optional). 
+If you also want to try k-mer comparison plot, run the following commands to install the tool (optional). 
 
 ```
 git clone https://github.com/dfguan/KMC.git 
@@ -72,7 +72,7 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -s SRF, --srfofn SRF  list of short reads files in fastq/fastq.gz format (one record per line, the
-                        record is a tab splitted line of abosulte file path
+                        record is a tab splitted line of absolute file path
                         plus trimmed bases, refer to
                         https://github.com/dfguan/KMC) [NONE]
   -l LOCD, --localdir LOCD
@@ -156,7 +156,7 @@ This file use several key words to define resource allocation, input files or ou
 
 **Notice**: **isdip** is deprecated. 
 
-The dictionary "kcp" keeps paramaters for run_kcm script.  
+The dictionary "kcp" keeps parameters for run_kcm script.  
 The dictionary "gs" sets parameters for get\_seqs (purge\_dups executable file), designed to produce primary contigs and haplotigs.  
 The dictionary "pd" sets parameters for purge\_dups (purge\_dups executable file), designed to purge haplotigs and overlaps in an assembly.  
 The dictionary **"cc"** sets parameters for **minimap2/bwa**.  
@@ -207,7 +207,7 @@ If the busco and k-mer comparison plot scripts are working, please modify them w
 - run\_kcm: set kcm\_dir variable in run\_kcm script to your own KMC directory path.
 
 ## <a name="pplg"> </a> Pipeline Guide
-Given a primary assembly *pri_asm* and an alternative assembly *hap_asm* (optional, if you have one), follow the steps shown below to build your own purge_dups pipeline, steps with same number can be run simultaneously. Among all the steps, although step 4 is optional, we highly recommend our users to do so, because assemblers may produce overrepresented seqeuences. In such a case, The final step 4 can be applied to remove those seqeuences.
+Given a primary assembly *pri_asm* and an alternative assembly *hap_asm* (optional, if you have one), follow the steps shown below to build your own purge_dups pipeline, steps with same number can be run simultaneously. Among all the steps, although step 4 is optional, we highly recommend our users to do so, because assemblers may produce overrepresented sequences. In such a case, The final step 4 can be applied to remove those sequences.
 
 ### Step 1. Run minimap2 to align pacbio data and generate paf files, then calculate read depth histogram and base-level read depth. Commands are as follows:
 
@@ -279,4 +279,4 @@ After you get the TX.stat and TX.base.cov file, you can following the normal pur
  
 ## Contact
 
-Wellcome to use, you can use github webpage to report an issue or email me dfguan9@gmail.com with any advice. 
+Welcome to use, you can use github webpage to report an issue or email me dfguan9@gmail.com with any advice. 
