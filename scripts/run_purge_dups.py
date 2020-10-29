@@ -70,12 +70,14 @@ def purge_dups(man, pltfm, paf_fn, base_cov_fn, cutoff_fn, core_lim, mem_lim, qu
     rtn = man.start([j], True)
     return rtn    
 #INPUT: dups assembly
-def get_seqs(man, pltfm, ref, dups_fn, core_lim, mem_lim, out_dir, bin_dir, spid):
+def get_seqs(man, pltfm, ref, dups_fn, core_lim, mem_lim, onlyend, out_dir, bin_dir, spid):
     mkdir(out_dir) 
     out_fn = "{0}/{1}.purged.fa".format(out_dir, get_rm_prefix(ref)) 
     out_red_fn = "{0}/{1}.red.fa".format(out_dir, get_rm_prefix(ref))
     out_prefx="{0}/{1}".format(out_dir, get_rm_prefix(ref))
     jcmd = "{0}/get_seqs -p {5} {1} {2}".format(bin_dir, dups_fn, ref, out_fn, out_red_fn, out_prefx)
+    if onlyend:
+        jcmd = "{0}/get_seqs -e -p {5} {1} {2}".format(bin_dir, dups_fn, ref, out_fn, out_red_fn, out_prefx)
     jjn = "get_seqs_{}".format(spid)
     jout = "{0}/{1}_%J.o".format(out_dir, jjn)
     jerr = "{0}/{1}_%J.e".format(out_dir, jjn)
@@ -264,11 +266,14 @@ def cont(config_fn, bin_dir, spid, pltfm, _wait, _retries):
             rtn = purge_dups(man, pltfm, in_paf_fn, "", "", 1, pd_mem, pd_queue, out_pd_dir, bin_dir, spid)
     if not rtn:
         gs_mem = 10000
+        gs_onlyend = 1
         if "gs" in config_dict:
             gs_mem = config_dict["gs"]["mem"]
+        if "oe" in config_dict:
+            gs_onlyend=config_dict["gs"]["oe"]
         in_dups_fn = "{0}/dups.bed".format(out_pd_dir)
         out_dir = "{}/seqs".format(out_dir)
-        rtn = get_seqs(man, pltfm, ref, in_dups_fn, 1, gs_mem, out_dir, bin_dir, spid) 
+        rtn = get_seqs(man, pltfm, ref, in_dups_fn, 1, gs_mem, gs_onlyend, out_dir, bin_dir, spid) 
     
     procs = [] 
     workdir = out_dir

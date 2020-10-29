@@ -125,7 +125,8 @@ configuration file is in json format, it has all the information required by run
     "queue": "normal"
   },
   "gs": {
-    "mem": 10000
+    "mem": 10000,
+    "oe": 1
   },
   "kcp": {
     "core": 12,
@@ -153,12 +154,13 @@ This file use several key words to define resource allocation, input files or ou
 - **ref**: Assembly file path
 - **out_dir**: Working directory
 - **ispb**: Bool value set for pacbio data, 0 for Illumina data
+- **oe**: only remove the haplotypic duplications occuring at the ends of the contigs
 
 **Notice**: **isdip** is deprecated. 
 
-The dictionary "kcp" keeps paramaters for run_kcm script.  
-The dictionary "gs" sets parameters for get\_seqs (purge\_dups executable file), designed to produce primary contigs and haplotigs.  
-The dictionary "pd" sets parameters for purge\_dups (purge\_dups executable file), designed to purge haplotigs and overlaps in an assembly.  
+The dictionary **"kcp"** keeps paramaters for run_kcm script.  
+The dictionary **"gs"** sets parameters for get\_seqs (purge\_dups executable file), designed to produce primary contigs and haplotigs.  
+The dictionary **"pd"** sets parameters for purge\_dups (purge\_dups executable file), designed to purge haplotigs and overlaps in an assembly.  
 The dictionary **"cc"** sets parameters for **minimap2/bwa**.  
 The dictionary **"sa"** sets parameters for minimap2.  
 The dictionary "busco" sets parameters for run\_busco. 
@@ -237,9 +239,9 @@ bin/purge_dups -2 -T cutoffs -c PB.base.cov $pri_asm.split.self.paf.gz > dups.be
 ### Step 3. Get purged primary and haplotig sequences from draft assembly. 
 
 ```
-bin/get_seqs dups.bed $pri_asm 
+bin/get_seqs -e dups.bed $pri_asm 
 ``` 
-**Notice** this command will remove haplotypic duplications at the ends and in the middle of the contigs. If you just want to remove the duplications at the ends, please use `-e` option. For more options, please refer to `get_seqs -h`.
+**Notice** this command will only remove haplotypic duplications at the ends of the contigs. If you also want to remove the duplications in the middle, please remove `-e` option at your own risk, it may delete false positive duplications. For more options, please refer to `get_seqs -h`.
 
 ### Step 4. Merge hap.fa and $hap_asm and redo the above steps to get a decent haplotig set. 
 

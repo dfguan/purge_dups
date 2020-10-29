@@ -34,7 +34,7 @@ def gen_config(r, d, fn, skipB):
             "sa":{"core":12, "mem":10000, "queue":"normal"},
             "busco":{"core":12, "mem":20000, "queue":"long", "skip":0, "lineage":used_lineage, "prefix":ref_fn+"_purged", "tmpdir":"busco_tmp"},
             "pd":{"mem": 20000, "queue": "normal"}, 
-            "gs": {"mem": 10000}, 
+            "gs": {"mem": 10000, "oe": 1}, 
             "kcp": {"core":12, "mem":30000, "fofn":"", "prefix":ref_fn+"_purged_kcm", "tmpdir":"kcp_tmp", "skip": 0}, 
             "ref":r, "out_dir":ref_fn
     }
