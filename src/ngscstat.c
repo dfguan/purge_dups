@@ -259,10 +259,13 @@ int main(int argc, char *argv[])
 	char *r;
 	char *out_dir = ".";
 	int option = 0; //the way to calculate molecule length //internal parameters not allowed to adjust by users
-	while (~(c=getopt(argc, argv, "b:B:c:C:q:S:a:L:l:O:h"))) {
+	while (~(c=getopt(argc, argv, "q:M:L:O:h"))) {
 		switch (c) {
 			case 'q':
 				min_mq = atoi(optarg);
+				break;
+			case 'M':
+				max_cov = strtol(optarg, &r, 10);
 				break;
 			case 'L':
 				max_is = strtol(optarg, &r, 10);
@@ -277,8 +280,8 @@ help:
 				fprintf(stderr, "Options:\n");
 				fprintf(stderr, "         -q    INT      minimum alignment quality [30]\n");
 				fprintf(stderr, "         -M    INT      maximum read depth [500]\n");
-				/*fprintf(stderr, "         -S    INT      minimum aislignment score [0]\n");*/
 				fprintf(stderr, "         -L    INT      maximum insert size [1000]\n");
+				fprintf(stderr, "         -O    STR      output directory [.]\n");
 				fprintf(stderr, "         -h             help\n");
 				return 1;	
 		}		
