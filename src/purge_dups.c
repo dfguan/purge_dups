@@ -58,6 +58,7 @@ typedef struct {
 	uint32_t sn:28, tp:3, del:1; //don't think there will be 2G contigs
 	uint32_t psn;
 	uint32_t s, e;
+	uint32_t ps, pe;
 }dup_t;
 
 typedef struct {size_t n, m; dup_t *a;} dup_v;
@@ -83,7 +84,7 @@ int print_dups(dup_v *dups, sdict_t *dup_n)
 	size_t n = dups->n;
 	size_t i;
 	for ( i = 0; i < n; ++i ) 
-		~dp[i].psn ? fprintf(stdout, "%s\t%u\t%u\t%s\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s - 1, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].psn].name): fprintf(stdout, "%s\t%u\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp]);
+		~dp[i].psn ? fprintf(stdout, "%s\t%u\t%u\t%s\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s - 1, dp[i].e, dup_type_s[dp[i].tp], dup_n->seq[dp[i].psn].name, dp[i].ps - 1, dp[i].pe): fprintf(stdout, "%s\t%u\t%u\t%s\n", dup_n->seq[dp[i].sn].name, dp[i].s, dp[i].e, dup_type_s[dp[i].tp]);
 	return 0;
 }
 
@@ -1333,7 +1334,9 @@ int update_dup_cords(dup_v *dups, sdict_t *sn, sdict_t *dup_n)
 			parse_name(name, strlen(name), &nt);
 			idx = sd_put(dup_n, nt.ctgn, 0, 1);
 			name[nt.nl] = ':';
-			dp[i].psn = idx;	
+			dp[i].psn = idx;
+		        dp[i].ps = nt.s;
+		        dp[i].pe = nt.e;	
 		}
 	}
 	return 0;	
