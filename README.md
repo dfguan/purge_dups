@@ -12,7 +12,7 @@ purge haplotigs and overlaps in an assembly based on read depth
 - src: purge_dups source files.
 - src/split_fa: split fasta file by 'N's.
 - src/pbcstat: create read depth histogram and base-level read depth for an assembly based on pacbio data.
-- src/ngstat: create read depth histogram and base-level read detph for an assembly based on illumina data.
+- src/ngscstat: create read depth histogram and base-level read detph for an assembly based on illumina data.
 - src/calcuts: calculate coverage cutoffs.
 - src/purge_dups: purge haplotigs and overlaps for an assembly.
 - src/get_seqs: obtain seqeuences after purging. 
