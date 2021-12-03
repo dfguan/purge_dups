@@ -213,6 +213,7 @@ Given a primary assembly *pri_asm* and an alternative assembly *hap_asm* (option
 
 ### Step 1. Run minimap2 to align pacbio data and generate paf files, then calculate read depth histogram and base-level read depth. Commands are as follows:
 
+For `PacBio CLR` reads  
 ```
 for i in $pb_list
 do
@@ -221,6 +222,16 @@ done
 bin/pbcstat *.paf.gz (produces PB.base.cov and PB.stat files)
 bin/calcuts PB.stat > cutoffs 2>calcults.log
 ```
+For `PacBio CCS` reads  
+```
+for i in $pb_list
+do
+	minimap2 -xasm20 $pri_asm $i | gzip -c - > $i.paf.gz
+done
+bin/pbcstat *.paf.gz (produces PB.base.cov and PB.stat files)
+bin/calcuts PB.stat > cutoffs 2>calcults.log
+```
+
 **Notice** If you have a large genome, please set minimap2 ``-I`` option to ensure the genome can be indexed once, otherwise read depth can be wrong. 
 
 ### Step 1. Split an assembly and do a self-self alignment. Commands are following: 
