@@ -51,9 +51,9 @@ def mk_plot(hists, cutoffs, ttle, xm, xM, ym, yM, out_fl):
     colors = ['r', 'g', 'c']
     if len(cutoffs):
         for i in range(len(cutoffs)):
-            plt.text(cutoffs[i], 0, str(cutoffs[i]), fontsize = 5, color=colors[i])
+            plt.text(cutoffs[i], 0, str(cutoffs[i]), fontsize = 12, color=colors[i])
             plt.axvline(x=cutoffs[i], linewidth=1, color = colors[i]) 
-
+    plt.xlim([0, max(cutoffs)*1.5])
     plt.title(ttle)
     plt.gca().xaxis.grid(True, color="black", alpha=0.2)
 
