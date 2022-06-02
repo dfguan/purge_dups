@@ -54,15 +54,32 @@ float norm_cdf(int x, float p, int n) {
 uint32_t *read_counts(const char *fn)
 {
 	uint32_t max_depth = MAX_DEPTH;
-	uint32_t *depth2cnt = malloc(sizeof(uint32_t) * (max_depth + 1));
+	uint64_t *depth2cnt = (uint64_t *) calloc(max_depth + 1, sizeof(uint64_t));
 	if (!depth2cnt) return 0;
 	FILE *fp = strcmp(fn, "-") == 0 ? stdin : fopen(fn, "r");
 	int idx;
-	uint32_t cnt;
-	while (EOF != fscanf(fp, "%d\t%u\n", &idx, &cnt)) 
+	uint64_t cnt, mcnt;
+    mcnt = 0;
+	while (EOF != fscanf(fp, "%d\t%lu\n", &idx, &cnt)) {
 		depth2cnt[idx] = cnt;
+        if (cnt > mcnt)
+            mcnt = cnt;
+    }
+    if (mcnt > UINT32_MAX) {
+        int scale = 0;
+        while (mcnt > UINT32_MAX) {
+            ++scale;
+            mcnt >>= 1;
+        }
+        for (idx = 0; idx <= max_depth; ++idx)
+            depth2cnt[idx] >>= scale;
+    }
 	if (strcmp(fn, "-") != 0) fclose(fp);	
-	return depth2cnt;
+	uint32_t *cnts = (uint32_t *) calloc(max_depth + 1, sizeof(uint32_t));
+    for (idx = 0; idx <= max_depth; ++idx)
+        cnts[idx] = (uint32_t) depth2cnt[idx];
+    free(depth2cnt);
+    return cnts;
 }
 
 int get_mean(uint32_t *depth2cnt)
