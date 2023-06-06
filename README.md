@@ -24,7 +24,7 @@ purge\_dups is designed to remove haplotigs and contig overlaps in a *de novo* a
 
 You can follow the [Usage](#usg) part and use our pipeline to purge your assembly or go to the [Pipeline Guide](#pplg) to build your own pipeline.
 
-![purge_dups pipeline](./purge_dupspipeline.png)
+![purge_dups pipeline](assets/purge_dupspipeline.png)
 
 
 
@@ -262,9 +262,9 @@ bin/get_seqs -e dups.bed $pri_asm
 - Repeats: purge_dups has a limited ability to process repeats. 
 
 ## FAQ
-**Q:** Can I use purge_dups with short reads? 
+> **Q1** Can I use purge_dups with short reads? 
 
-**A:** Yes, purge_dups does have a program to process Illumina reads, it's called **ngscstat** under the bin directory. But I have not got time to test it. If you want to play with it, please follow this workflow:
+Yes, purge_dups does have a program to process Illumina reads, it's called **ngscstat** under the bin directory. But I have not got time to test it. If you want to play with it, please follow this workflow:
 
 ```
 bwa mem $pri_asm $sr_1.fq $sr_2.fq | samtools view -b -o - > $sr.bam 
@@ -273,21 +273,46 @@ ngscstat $sr.bam... # The program will generate two/three outputs, TX.stat and T
 
 After you get the TX.stat and TX.base.cov file, you can following the normal purge_dups routine to clean your assembly. 
 
-**Q1:** Can I validate the cutoffs used by purge\_dups? 
+> **Q2** Can I validate the cutoffs used by purge\_dups? 
 
-**A1:** Yes, we also recommend this step. A script "hist_plot.py" under the scripts directory is available, you can also use it to manually select the cutoffs. 
+Yes, we highly recommend this step. A script "hist_plot.py" is available, you can use it to produce a coverage histogram:
 
-**Q2:** How can I validate the purged assembly? Is it clean enough or overpurged? 
+```sh
+pip install matplotlib
+python3 scripts/hist_plot.py -c cutoff_file PB.stat PB.cov.png
+```
 
-**A2:** There are many ways to validate the purged assembly. One way is to make a coverage plot for it which can also be hist_plot.py, the 2nd way is to run BUSCO and another way is to make a KAT plot with KAT (https://github.com/TGAC/KAT) or KMC (https://github.com/dfguan/KMC, use this if you only have a small memory machine) if short reads or some accurate reads are available. 
+> **Q2'** How do I then set my own cutoffs?
 
-**Q3:** Why do I get much fewer haplotypic duplications than expected?
+From the coverage histogram, you need to set low, mid and high coverages:
+- Contigs with average coverage below the *low* coverage threshold are set to 'JUNK' in `purge_dups`' BED output.
+- *mid* coverage represents the transition between haploid and diploid coverages. Contigs
+with average coverage below *mid* coverage are tested for haplotypic duplications.
+- Contigs with average coverage above *high* coverage are used for classifying contigs as
+'REPEAT' in `purge_dups`' BED output.
 
-**A3:** First check the original contig names, they should not contain any colons. Then check the cutoffs, if purge_dups automatically use a fairly low read depth for haplotypic duplications, it may remove nothing. In this case, you need to set the cutoffs manually.  
+As an example, from the coverage histogram below:
 
-**Q4:** why does purge_dups remove middle sequence in a contig?
+![cov_histogram](assets/example_coverage_histogram.png)
 
-**A4:** Some of them are real, while others may not. We are currently investigating them. Please use `-e` for `get_seqs` command if you only want to remove the duplications at the ends of the contigs.
+you could use 5, 85 and 190 for low, mid and high respectively.
+
+```sh
+calcuts -l 5 -m 85 -u 200 PB.stat > cutoffs_manual
+bin/purge_dups -2 -T cutoffs_manual -c PB.base.cov $pri_asm.split.self.paf.gz > dups.bed 2> purge_dups.log
+```
+
+> **Q3** How can I validate the purged assembly? Is it clean enough or overpurged? 
+
+There are many ways to validate the purged assembly. One way is to make a coverage plot for it which can also be hist_plot.py, the 2nd way is to run BUSCO and another way is to make a KAT plot with KAT (https://github.com/TGAC/KAT) or KMC (https://github.com/dfguan/KMC, use this if you only have a small memory machine) if short reads or some accurate reads are available. 
+
+> **Q4** Why do I get much fewer haplotypic duplications than expected?
+
+First check the original contig names, they should not contain any colons. Then check the cutoffs, if purge_dups automatically use a fairly low read depth for haplotypic duplications, it may remove nothing. In this case, you need to set the cutoffs manually.  
+
+> **Q5** why does purge_dups remove middle sequence in a contig?
+
+Some of them are real, while others may not. We are currently investigating them. Please use `-e` for `get_seqs` command if you only want to remove the duplications at the ends of the contigs.
  
  
 ## Contact
