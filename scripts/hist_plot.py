@@ -16,6 +16,7 @@ def col_hist(stat_fn, delim):
             hists.append(int(lnlist[1])) 
         f.close()
     return hists
+
 def get_cutoffs(con):
     if con:
         lnlst = []
@@ -46,14 +47,16 @@ def mk_plot(hists, cutoffs, ttle, xm, xM, ym, yM, out_fl):
     height = 6
     plt.figure(num=None, figsize=(width, height))
     plt.plot(x, hists[xm:xM], label = "l", color="blue") # 
-    plt.xticks([z for z in range(xm, xM, 10)], fontsize=3)
+    plt.xticks([z for z in range(xm, xM, 10)], fontsize=6, rotation=45)
+    plt.xlabel("Read fold-coverage")
+    plt.ylabel("Number of assembly positions")
     # cutoffs
     colors = ['r', 'g', 'c']
     if len(cutoffs):
         for i in range(len(cutoffs)):
             plt.text(cutoffs[i], 0, str(cutoffs[i]), fontsize = 12, color=colors[i])
             plt.axvline(x=cutoffs[i], linewidth=1, color = colors[i]) 
-    plt.xlim([0, max(cutoffs)*1.5])
+    # plt.xlim([0, max(cutoffs)*1.5])
     plt.title(ttle)
     plt.gca().xaxis.grid(True, color="black", alpha=0.2)
 
