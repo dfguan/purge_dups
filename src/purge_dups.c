@@ -928,20 +928,38 @@ typedef struct {
 
 int parse_name(char *s, int l, name_t *nt)
 {
+	char *last_colon = NULL;
+	int last_colon_i = NULL;
 	char *q, *r;
+	q=s;
+	// Find the last colon
+	for (int i = l - 1; i >= 0; --i) {
+		if (s[i] == ':') {
+			last_colon = &s[i];
+			last_colon_i = i;
+			s[i]=0;
+			nt->ctgn = q;
+			nt->nl = i;
+			break;
+		}
+	}
 	int i, t;
-	for (i = t = 0, q = s; i <= l; ++i) {
-		if (i < l && s[i] != ':' && s[i] != '-') continue;
+	t=0;
+	for (i = last_colon_i + 1, q = s+last_colon_i + 1; i <= l; ++i) {
+		if (i < l && s[i] != '-') continue;
 		s[i] = 0;
-		if (t == 0) nt->ctgn = q, nt->nl = i;
-		else if (t == 1) nt->s = strtol(q, &r, 10), s[i] = '-';
-		else if (t == 2) nt->e = strtol(q, &r, 10);
+		if (t == 0) {
+			nt->s = strtol(q, &r, 10);//, s[i] = '-';
+		}
+		else if (t == 1) nt->e = strtol(q, &r, 10);
 		++t, q = i < l? &s[i+1] : 0;
 	}
 	if (t < 2) return -1;
 	return 0;
-
 }
+
+
+
 int classify_seq(cov_ary_t *ca, sdict_t *sn, sdict_t *osn, uint32_t* cutoffs, float min_frac)
 {
 	size_t i;
