@@ -226,7 +226,7 @@ For `PacBio CCS` reads
 ```
 for i in $pb_list
 do
-	minimap2 -xasm20 $pri_asm $i | gzip -c - > $i.paf.gz
+	minimap2 -xmap-hifi $pri_asm $i | gzip -c - > $i.paf.gz
 done
 bin/pbcstat *.paf.gz (produces PB.base.cov and PB.stat files)
 bin/calcuts PB.stat > cutoffs 2>calcults.log
@@ -318,3 +318,4 @@ Some of them are real, while others may not. We are currently investigating them
 ## Contact
 
 Wellcome to use, you can use github webpage to report an issue or email me dfguan9@gmail.com with any advice. 
+
